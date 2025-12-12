@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import Sidebar from '@/components/Sidebar';
 import { 
   Users, 
   AlertCircle, 
@@ -156,7 +157,6 @@ export default function Students() {
   return (
     <AppLayout>
     <div className="flex min-h-screen bg-gray-50">
-      
       
       <div className="flex-1 p-8">
         {/* Header */}

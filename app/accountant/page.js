@@ -2,9 +2,9 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import Sidebar from '@/components/Sidebar';
 import DashboardCards from '@/components/DashboardCards';
 import { dummyData } from '@/utils/dummyData';
+import AppLayout from '../../components/AppLayout';
  
 export default function AccountantDashboard() {
   const { user } = useAuth();
@@ -21,10 +21,9 @@ export default function AccountantDashboard() {
   }
 
   return (
+    <AppLayout>
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-      
-      <div className="ml-64 flex-1 p-8">
+      <div className="flex-1 p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600">Welcome back, {user.name}!</p>
@@ -45,7 +44,7 @@ export default function AccountantDashboard() {
             </div>
             <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
               <span className="text-sm text-green-700">
-                Fee payment received - ₹15,000
+                Fee payment received - Rs.15,000
               </span>
               <span className="text-xs text-green-600">4 hours ago</span>
               
@@ -56,5 +55,6 @@ export default function AccountantDashboard() {
 
       </div>
     </div>
+    </AppLayout>
   );
 }

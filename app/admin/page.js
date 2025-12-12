@@ -6,22 +6,31 @@ import Sidebar from '@/components/Sidebar';
 import DashboardCards from '@/components/DashboardCards';
 import { getDashboardStatsAPI } from '@/Services/dashboardService';
 import { Loader2, RefreshCw, Calendar } from 'lucide-react';
+import AppLayout from '../../components/AppLayout';
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recentActivity, setRecentActivity] = useState([]);
 
   useEffect(() => {
-    if (!user) {
+    // Wait for auth to load
+    if (authLoading) return;
+    
+    // Check if user is authenticated
+    const token = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
+    
+    if (!token || !savedUser) {
       router.push('/');
       return;
     }
+    
     fetchDashboardData();
     fetchRecentActivity();
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -30,6 +39,11 @@ export default function AdminDashboard() {
       setDashboardData(response);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      // If token is invalid, redirect to login
+      if (error.response?.status === 401) {
+        localStorage.clear();
+        router.push('/');
+      }
     } finally {
       setLoading(false);
     }
@@ -40,7 +54,7 @@ export default function AdminDashboard() {
       // You can create a separate API for this
       const mockActivity = [
         { message: 'New student registration - Ali Ahmed', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000) },
-        { message: 'Fee payment received - ₹15,000', timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000) },
+        { message: 'Fee payment received - Rs.15,000', timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000) },
         { message: 'CSV fee data uploaded for Class 1', timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000) },
         { message: 'New campus created - North Campus', timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) },
       ];
@@ -54,7 +68,7 @@ export default function AdminDashboard() {
     fetchDashboardData(); // Refresh data after CSV upload
   };
 
-  if (!user) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -65,11 +79,16 @@ export default function AdminDashboard() {
     );
   }
 
+  if (!user) {
+    return null; // Will redirect in useEffect
+  }
+
   return (
+    <AppLayout >
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       
-      <div className="ml-64 flex-1 p-8">
+      
+      <div className="flex-1 p-8">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
@@ -140,69 +159,10 @@ export default function AdminDashboard() {
                 ))}
               </div>
             </div>
-
-            {/* Quick Stats Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-2">Quick Actions</h3>
-                <ul className="space-y-2">
-                  <li>
-                    <button className="text-left hover:text-blue-100">
-                      📋 Generate Fee Reports
-                    </button>
-                  </li>
-                  <li>
-                    <button className="text-left hover:text-blue-100">
-                      👥 Add New Student
-                    </button>
-                  </li>
-                  <li>
-                    <button className="text-left hover:text-blue-100">
-                      🏫 Create New Campus
-                    </button>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-2">Fee Summary</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span>Total Collected:</span>
-                    <span className="font-bold">₹{dashboardData?.totalReceived?.toLocaleString() || '0'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Pending Amount:</span>
-                    <span className="font-bold">₹{dashboardData?.totalPending?.toLocaleString() || '0'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Defaulters:</span>
-                    <span className="font-bold">{dashboardData?.totalDefaulters || 0}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-2">System Status</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
-                    <span>All Systems Operational</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
-                    <span>API Connection Active</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
-                    <span>Database Connected</span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </>
         )}
       </div>
     </div>
+    </AppLayout>
   );
 }

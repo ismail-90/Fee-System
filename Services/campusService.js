@@ -17,3 +17,11 @@ export const createAccountantAPI = async (data) => {
   const response = await api.post("/accountant/create", data);
   return response.data;
 };
+
+// 4) Get Accountants
+export const getAllAccountantsAPI = async () => {
+  const response = await api.get("/accountant/all");
+  return response.data;
+}
+
+

@@ -47,6 +47,7 @@ export default function Sidebar() {
   const accountantMenuItems = [
     { name: 'Home', href: '/accountant', icon: Home },
     { name: 'Students', href: '/accountant/students', icon: Users },
+    { name: 'Expenses', href: '/accountant/expenses', icon: DollarSign },
     { name: 'Invoices', href: '/accountant/invoices', icon: FileText },
     { name: 'Fee Collection', href: '/accountant/collection', icon: CreditCard },
     { name: 'Payment Records', href: '/accountant/payments', icon: Receipt },

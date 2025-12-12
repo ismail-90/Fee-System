@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { FileText, Search, Filter, Plus, Download, Eye, Edit, Calendar, DollarSign, Hash } from 'lucide-react';
-import Sidebar from '../../../components/Sidebar';
+import AppLayout from '../../../components/AppLayout';
 
 // Dummy data for invoices
 const dummyInvoices = [
@@ -119,8 +119,10 @@ export default function Invoices() {
 
   return (
     <>
-    <Sidebar />
-    <div className="p-8 ml-64">
+   <AppLayout>
+
+   
+    <div className="p-8">
   
       {/* Header */}
       <div className="mb-8">
@@ -310,11 +312,11 @@ export default function Invoices() {
                   <td className="px-6 py-4">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
-                        ₹{invoice.amount.toLocaleString()}
+                        Rs.{invoice.amount.toLocaleString()}
                       </div>
                       {invoice.pendingAmount > 0 && (
                         <div className="text-xs text-red-600">
-                          Pending: ₹{invoice.pendingAmount.toLocaleString()}
+                          Pending: Rs.{invoice.pendingAmount.toLocaleString()}
                         </div>
                       )}
                     </div>
@@ -430,16 +432,16 @@ export default function Invoices() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Total Amount:</span>
-                    <span className="font-medium">₹{selectedInvoice.amount.toLocaleString()}</span>
+                    <span className="font-medium">Rs.{selectedInvoice.amount.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Pending Amount:</span>
-                    <span className="font-medium text-red-600">₹{selectedInvoice.pendingAmount.toLocaleString()}</span>
+                    <span className="font-medium text-red-600">Rs.{selectedInvoice.pendingAmount.toLocaleString()}</span>
                   </div>
                   {selectedInvoice.status === 'Paid' && (
                     <div className="flex justify-between border-t border-gray-200 pt-2">
                       <span className="text-gray-600 font-semibold">Paid Amount:</span>
-                      <span className="font-semibold text-green-600">₹{selectedInvoice.amount.toLocaleString()}</span>
+                      <span className="font-semibold text-green-600">Rs.{selectedInvoice.amount.toLocaleString()}</span>
                     </div>
                   )}
                 </div>
@@ -506,6 +508,7 @@ export default function Invoices() {
         </div>
       )}
     </div>
+    </AppLayout>
     </>
   );
 }

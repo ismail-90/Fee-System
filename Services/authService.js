@@ -10,4 +10,7 @@ export const loginAPI = async (email, password, role) => {
   return response.data;
 };
 
-
+export const getProfileAPI = async () => {
+  const response = await api.get("/global/profile");
+  return response.data;
+}

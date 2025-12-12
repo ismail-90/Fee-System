@@ -7,28 +7,43 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  
 
   // Load saved user on page refresh
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
-    
-    if (savedUser && token) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-        localStorage.clear();
+    const initializeAuth = () => {
+      const token = localStorage.getItem("token");
+      const savedUser = localStorage.getItem("user");
+      
+      if (token && savedUser) {
+        try {
+          const parsedUser = JSON.parse(savedUser);
+          setUser(parsedUser);
+        } catch (error) {
+          console.error("Error parsing user data:", error);
+          clearAuthData();
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    initializeAuth();
+
+    // Add event listener for storage changes (other tabs)
+    const handleStorageChange = (e) => {
+      if (e.key === 'token' || e.key === 'user') {
+        initializeAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const login = async (email, password, role) => {
     try {
       const data = await loginAPI(email, password, role);
 
-      // Profile from backend
       const userData = {
         id: data.profile.id,
         name: data.profile.name,
@@ -39,11 +54,14 @@ export function AuthProvider({ children }) {
       // Save to localStorage
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(userData));
-      localStorage.setItem("role", data.profile.role);
-
+      
       setUser(userData);
 
-      return { success: true, role: data.profile.role };
+      return { 
+        success: true, 
+        role: data.profile.role,
+        user: userData 
+      };
 
     } catch (err) {
       const msg =
@@ -56,15 +74,19 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    localStorage.clear();
+    clearAuthData();
     setUser(null);
+    window.location.href = '/';
   };
 
-  // Add this function to check authentication
+  const clearAuthData = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+  };
+
   const isAuthenticated = () => {
-    const token = localStorage.getItem("token");
-    const savedUser = localStorage.getItem("user");
-    return !!(token && savedUser);
+    return !!user && !!localStorage.getItem("token");
   };
 
   return (

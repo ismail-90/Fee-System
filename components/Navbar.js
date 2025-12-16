@@ -2,9 +2,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { LogOut, User, Settings, ChevronDown } from 'lucide-react';
+import { getProfileAPI } from '@/Services/authService';
+import { LogOut, User, Settings, ChevronDown, Menu } from 'lucide-react';
 
-export default function Navbar() {
+
+export default function Navbar({onMenuClick}) {
+  const role = localStorage.getItem('user'); // Ensure role is loaded
   const { user, logout } = useAuth();
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -56,7 +59,16 @@ export default function Navbar() {
       <div className="flex items-center justify-between">
         {/* Left Side - Logo/Title */}
         <div className="flex items-center">
-          <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
+          <button
+    onClick={onMenuClick}
+    className="lg:hidden p-2 rounded-md hover:bg-gray-100"
+  >
+    <Menu size={22} />
+  </button>
+          <h1 className="text-lg hidden lg:block sm:text-xl font-bold text-gray-900 truncate">
+            {/* {
+              user?.role === 'accountant' ? 'Admin Panel' : 'Accountant Panel'
+            } */}
             Fee Management
           </h1>
         </div>

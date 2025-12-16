@@ -1,39 +1,37 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  Home, 
-  School, 
-  Users, 
-  FileText, 
-  BarChart3, 
+import {
+  Home,
+  School,
+  Users,
+  FileText,
+  BarChart3,
   DollarSign,
   LogOut,
   CreditCard,
-  Receipt
+  Receipt,
+  X
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
-export default function Sidebar() {
+export default function Sidebar({ open, setOpen }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [role, setRole] = useState('admin');
 
   useEffect(() => {
-    // Get role from user context or localStorage
     if (user?.role) {
       setRole(user.role);
     } else {
       const savedRole = localStorage.getItem('role');
-      if (savedRole) {
-        setRole(savedRole);
-      }
+      if (savedRole) setRole(savedRole);
     }
   }, [user]);
 
-  // Admin menu items - full access
+  // Admin menu
   const adminMenuItems = [
     { name: 'Home', href: '/admin', icon: Home },
     { name: 'Campuses', href: '/admin/campus', icon: School },
@@ -43,7 +41,7 @@ export default function Sidebar() {
     { name: 'Expenses', href: '/admin/expenses', icon: DollarSign },
   ];
 
-  // Accountant menu items - limited access
+  // Accountant menu
   const accountantMenuItems = [
     { name: 'Home', href: '/accountant', icon: Home },
     { name: 'Students', href: '/accountant/students', icon: Users },
@@ -54,17 +52,38 @@ export default function Sidebar() {
     { name: 'Reports', href: '/accountant/reports', icon: BarChart3 },
   ];
 
-  // Select menu items based on role
-  const menuItems = role === 'accountant' ? accountantMenuItems : adminMenuItems;
-
-  // Base path for links based on role
-  const basePath = role === 'accountant' ? '/accountant' : '/admin';
+  const menuItems =
+    role === 'accountant' ? accountantMenuItems : adminMenuItems;
 
   return (
-    <div className="w-64 bg-white shadow-lg h-screen fixed left-0 top-0 border-r border-gray-200">
-      {/* Logo and Header */}
-      <div className="p-6 border-b border-gray-200 flex flex-col items-center">
-        <div className="mb-4">
+    <>
+      {/* Overlay (mobile only) */}
+      {open && (
+        <div
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+        />
+      )}
+
+      <aside
+        className={`
+          fixed left-0 top-0 h-screen w-64 bg-white shadow-lg z-50
+          transform transition-transform duration-300
+          ${open ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0 lg:flex
+          flex flex-col
+        `}
+      >
+        {/* Header */}
+        <div className="p-6 flex flex-col items-center shrink-0 relative">
+          {/* Close button (mobile) */}
+          <button
+            onClick={() => setOpen(false)}
+            className="absolute top-4 right-4 lg:hidden"
+          >
+            <X size={20} />
+          </button>
+
           <Image
             src="/logo.png"
             alt="Logo"
@@ -72,51 +91,54 @@ export default function Sidebar() {
             height={70}
             className="rounded-lg"
           />
+          <h1 className="text-xl font-bold text-gray-800 mt-3">
+            Fee Management
+          </h1>
+          <div className="mt-2 px-3 py-1 bg-blue-100 rounded-full">
+            <span className="text-xs font-medium text-blue-800 capitalize">
+              {role}
+            </span>
+          </div>
         </div>
-        <h1 className="text-xl font-bold text-gray-800">Fee Management</h1>
-        <div className="mt-2 px-3 py-1 bg-blue-100 rounded-full">
-          <span className="text-xs font-medium text-blue-800 capitalize">
-            {role}
-          </span>
-        </div>
-      </div>
-      
-      {/* Navigation Menu */}
-      <nav className="p-4 flex-1">
-        <ul className="space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            
-            return (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center px-4 py-3 rounded-lg transition duration-200 ${
-                    isActive
-                      ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <Icon size={20} className="mr-3" />
-                  {item.name}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
 
-      {/* Logout Button */}
-      <div className="absolute bottom-4 left-4 right-4">
-        <button
-          onClick={logout}
-          className="flex items-center w-full px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition duration-200 border-t border-gray-100 pt-4"
-        >
-          <LogOut size={20} className="mr-3" />
-          Logout
-        </button>
-      </div>
-    </div>
+        {/* Scrollable Menu */}
+        <nav className="flex-1 overflow-y-auto px-4">
+          <ul className="space-y-2 pb-4">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+
+              return (
+                <li key={item.name}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={`flex items-center px-4 py-3 rounded-lg transition ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Icon size={20} className="mr-3" />
+                    {item.name}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {/* Logout */}
+        <div className="p-4 shrink-0">
+          <button
+            onClick={logout}
+            className="flex items-center w-full px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
+          >
+            <LogOut size={20} className="mr-3" />
+            Logout
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

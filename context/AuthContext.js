@@ -7,7 +7,6 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
 
   // Load saved user on page refresh
   useEffect(() => {
@@ -85,9 +84,8 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("role");
   };
 
-  const isAuthenticated = () => {
-    return !!user && !!localStorage.getItem("token");
-  };
+  // FIXED: Return boolean directly, not function call result
+  const isAuthenticated = !!user && !!localStorage.getItem("token");
 
   return (
     <AuthContext.Provider value={{ 
@@ -95,7 +93,7 @@ export function AuthProvider({ children }) {
       login, 
       logout, 
       loading,
-      isAuthenticated: isAuthenticated() 
+      isAuthenticated  // Direct boolean value
     }}>
       {children}
     </AuthContext.Provider>

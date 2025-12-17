@@ -2,160 +2,110 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { getProfileAPI } from '@/Services/authService';
 import { LogOut, User, Settings, ChevronDown, Menu } from 'lucide-react';
 
-
-export default function Navbar({onMenuClick}) {
-  const role = localStorage.getItem('user'); // Ensure role is loaded
+export default function Navbar({ onMenuClick }) {
   const { user, logout } = useAuth();
   const router = useRouter();
+
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
-  const [userProfile, setUserProfile] = useState(null);
+
+  const role = user?.role;
+  const campus = user?.campus;
 
   const handleLogout = () => {
     logout();
     router.push('/');
   };
 
-  // Close dropdown when clicking outside
+  /* Close dropdown on outside click */
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setShowDropdown(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch profile data if not available
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user?.profile && user?.token) {
-        try {
-          const response = await getProfileApi();
-          if (response?.profile) {
-            setUserProfile(response);
-          }
-        } catch (error) {
-          console.error('Error fetching profile:', error);
-        }
-      }
-    };
-    
-    fetchProfile();
-  }, [user]);
-
-  // Use profile data if available, otherwise use basic user data
-  const displayData = userProfile || user;
-
   return (
-    <nav className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 shadow-sm">
-      <div className="flex items-center justify-between">
-        {/* Left Side - Logo/Title */}
-        <div className="flex items-center">
+    <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md shadow-sm">
+      <div className="flex items-center justify-between h-16 px-4 lg:px-6">
+
+        {/* LEFT */}
+        <div className="flex items-center gap-3">
           <button
-    onClick={onMenuClick}
-    className="lg:hidden p-2 rounded-md hover:bg-gray-100"
-  >
-    <Menu size={22} />
-  </button>
-          <h1 className="text-lg hidden lg:block sm:text-xl font-bold text-gray-900 truncate">
-            {/* {
-              user?.role === 'accountant' ? 'Admin Panel' : 'Accountant Panel'
-            } */}
-            Fee Management
+            onClick={onMenuClick}
+            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition"
+          >
+            <Menu size={22} />
+          </button>
+
+          <h1 className="text-lg font-semibold text-gray-800 truncate">
+            {role === 'accountant' && campus?.name}
+            {role === 'admin' && 'Fee Management'}
           </h1>
         </div>
 
-        {/* Right Side - User Profile */}
-        <div className="flex items-center space-x-3">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-medium text-gray-900 truncate max-w-[150px]">
-              {displayData?.name}
+        {/* RIGHT */}
+        <div className="flex items-center gap-4">
+          <div className="hidden sm:block text-right">
+            <p className="text-sm font-semibold text-gray-800 truncate">
+              {user?.name}
             </p>
-            <div className="flex items-center gap-1 text-xs text-gray-500">
-              <span className="capitalize">{displayData?.role}</span>
-              {displayData?.role === 'accountant' && displayData?.campus?.name && (
-                <>
-                  <span>•</span>
-                  <span className="truncate max-w-[120px]">
-                    {displayData.campus.name}
-                  </span>
-                </>
-              )}
-            </div>
+            <p className="text-xs text-gray-500 capitalize">
+              {role}
+            </p>
           </div>
 
-          {/* Profile Dropdown */}
+          {/* PROFILE */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
-              className="flex items-center space-x-2 p-1.5 sm:p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-              aria-label="User menu"
-              aria-expanded={showDropdown}
+              className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 transition"
             >
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-sm font-medium">
-                  {displayData?.name?.charAt(0).toUpperCase()}
-                </span>
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-semibold shadow">
+                {user?.name?.charAt(0)}
               </div>
-              <ChevronDown 
-                className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} 
+              <ChevronDown
+                size={16}
+                className={`text-gray-500 transition-transform ${showDropdown ? 'rotate-180' : ''}`}
               />
             </button>
 
-            {/* Dropdown Menu */}
             {showDropdown && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 animate-in fade-in slide-in-from-top-2">
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {displayData?.name}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {displayData?.email}
-                  </p>
-                  {displayData?.role === 'accountant' && displayData?.campus?.name && (
-                    <p className="text-xs text-gray-500 mt-1 truncate">
-                      📍 {displayData.campus.name}
+              <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden">
+                <div className="px-4 py-3">
+                  <p className="text-sm font-semibold">{user?.name}</p>
+                  <p className="text-xs text-gray-500">{user?.email}</p>
+                  {role === 'accountant' && campus?.name && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      📍 {campus.name}
                     </p>
                   )}
                 </div>
-                
-                <button 
-                  onClick={() => {
-                    setShowDropdown(false);
-                    // Add your profile page navigation here
-                  }}
-                  className="w-full flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                >
-                  <User className="w-4 h-4 mr-3 text-gray-400" />
+
+                <div className="h-px bg-gray-100" />
+
+                <button className="w-full flex items-center px-4 py-2.5 text-sm hover:bg-gray-50">
+                  <User size={16} className="mr-3 text-gray-400" />
                   Profile
                 </button>
-                
-                <button 
-                  onClick={() => {
-                    setShowDropdown(false);
-                    // Add your settings page navigation here
-                  }}
-                  className="w-full flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                >
-                  <Settings className="w-4 h-4 mr-3 text-gray-400" />
+
+                <button className="w-full flex items-center px-4 py-2.5 text-sm hover:bg-gray-50">
+                  <Settings size={16} className="mr-3 text-gray-400" />
                   Settings
                 </button>
-                
-                <div className="border-t border-gray-100 my-1"></div>
-                
+
+                <div className="h-px bg-gray-100" />
+
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
+                  className="w-full flex items-center px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
                 >
-                  <LogOut className="w-4 h-4 mr-3" />
+                  <LogOut size={16} className="mr-3" />
                   Logout
                 </button>
               </div>

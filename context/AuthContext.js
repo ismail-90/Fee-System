@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useState, useEffect } from "react";
-import { loginAPI } from "@/services/authService";
+import { loginAPI, getProfileAPI } from "@/services/authService";
 
 const AuthContext = createContext();
 
@@ -8,92 +8,95 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load saved user on page refresh
+  /* 🔹 Initialize Auth (ONCE) */
   useEffect(() => {
-    const initializeAuth = () => {
+    const initAuth = async () => {
       const token = localStorage.getItem("token");
       const savedUser = localStorage.getItem("user");
-      
+
       if (token && savedUser) {
         try {
           const parsedUser = JSON.parse(savedUser);
           setUser(parsedUser);
+
+          // 🔥 FETCH FULL PROFILE (campus yahan se ayega)
+          const profileRes = await getProfileAPI();
+
+          const fullUser = {
+            ...parsedUser,
+            campus: profileRes.campus,
+          };
+
+          setUser(fullUser);
+          localStorage.setItem("user", JSON.stringify(fullUser));
         } catch (error) {
-          console.error("Error parsing user data:", error);
+          console.error("Auth init error:", error);
           clearAuthData();
         }
       }
       setLoading(false);
     };
 
-    initializeAuth();
-
-    // Add event listener for storage changes (other tabs)
-    const handleStorageChange = (e) => {
-      if (e.key === 'token' || e.key === 'user') {
-        initializeAuth();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    initAuth();
   }, []);
 
+  /* 🔹 LOGIN */
   const login = async (email, password, role) => {
     try {
       const data = await loginAPI(email, password, role);
 
-      const userData = {
+      const basicUser = {
         id: data.profile.id,
         name: data.profile.name,
         email: data.profile.email,
         role: data.profile.role,
       };
 
-      // Save to localStorage
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(userData));
-      
-      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(basicUser));
+      setUser(basicUser);
 
-      return { 
-        success: true, 
-        role: data.profile.role,
-        user: userData 
+      // 🔥 Immediately fetch profile + campus
+      const profileRes = await getProfileAPI();
+
+      const fullUser = {
+        ...basicUser,
+        campus: profileRes.campus,
       };
 
-    } catch (err) {
-      const msg =
-        err.response?.data?.message ||
-        err.message ||
-        "Login failed";
+      setUser(fullUser);
+      localStorage.setItem("user", JSON.stringify(fullUser));
 
-      return { success: false, message: msg };
+      return { success: true, role: fullUser.role };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.response?.data?.message || "Login failed",
+      };
     }
   };
 
+  /* 🔹 LOGOUT */
   const logout = () => {
     clearAuthData();
     setUser(null);
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
   const clearAuthData = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    localStorage.removeItem("role");
   };
 
-  // FIXED: Return boolean directly, not function call result
   const isAuthenticated = !!user && !!localStorage.getItem("token");
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      logout, 
+    <AuthContext.Provider value={{
+      user,
+      login,
+      logout,
       loading,
-      isAuthenticated  // Direct boolean value
+      isAuthenticated,
     }}>
       {children}
     </AuthContext.Provider>

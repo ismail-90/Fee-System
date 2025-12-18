@@ -11,7 +11,8 @@ import {
   LogOut,
   CreditCard,
   Receipt,
-  X
+  X,
+  UserRoundMinus
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Image from 'next/image';
@@ -45,10 +46,9 @@ export default function Sidebar({ open, setOpen }) {
   const accountantMenuItems = [
     { name: 'Home', href: '/accountant', icon: Home },
     { name: 'Students', href: '/accountant/students', icon: Users },
-    { name: 'Expenses', href: '/accountant/expenses', icon: DollarSign },
     { name: 'Invoices', href: '/accountant/invoices', icon: FileText },
-    { name: 'Fee Collection', href: '/accountant/collection', icon: CreditCard },
-    { name: 'Payment Records', href: '/accountant/payments', icon: Receipt },
+    { name: 'Defaulters', href: '/accountant/defaulters', icon: UserRoundMinus },
+    { name: 'Expenses', href: '/accountant/expenses', icon: DollarSign },
     { name: 'Reports', href: '/accountant/reports', icon: BarChart3 },
   ];
 

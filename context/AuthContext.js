@@ -32,6 +32,7 @@ export function AuthProvider({ children }) {
         } catch (error) {
           console.error("Auth init error:", error);
           clearAuthData();
+          
         }
       }
       setLoading(false);

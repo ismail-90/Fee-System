@@ -47,32 +47,7 @@ export default function AccountantDashboard() {
           </div>
 
           <DashboardCards data={dummyData.dashboard} />
-
-          <div className="bg-white rounded-xl shadow-sm p-6 mt-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Recent Activity
-            </h2>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                <span className="text-sm text-blue-700">
-                  New student registration - Ali Ahmed
-                </span>
-                <span className="text-xs text-blue-600">
-                  2 hours ago
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <span className="text-sm text-green-700">
-                  Fee payment received - Rs.15,000
-                </span>
-                <span className="text-xs text-green-600">
-                  4 hours ago
-                </span>
-              </div>
-            </div>
-          </div>
+ 
 
         </div>
       </div>

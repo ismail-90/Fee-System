@@ -1,7 +1,7 @@
 import api from "./api";
 
 export const getDashboardStatsAPI = async () => {
-  const response = await api.get("/dashboard/stats");
+  const response = await api.get("/global/dashboard-counts");
   return response.data;
 };
 

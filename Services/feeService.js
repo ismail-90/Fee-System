@@ -57,6 +57,7 @@ export const addExpenseAPI = async (data) => {
   return response.data;
 };
 
+
 // Get All Classes
 // export const getAllClassesAPI = async () => {
 //   const response = await api.get("/global/classes");

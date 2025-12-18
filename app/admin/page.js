@@ -117,26 +117,6 @@ export default function AdminDashboard() {
       <>
         <DashboardCards data={dashboardData} onCSVUpload={handleCSVUpload} />
 
-        {/* Recent Activity */}
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mt-6">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Recent Activity</h2>
-            <button onClick={fetchRecentActivity} className="text-sm text-blue-600 hover:text-blue-800">View All</button>
-          </div>
-          <div className="space-y-2 sm:space-y-3">
-            {recentActivity.map((activity, idx) => (
-              <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 sm:p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                <div className="flex items-center mb-1 sm:mb-0">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                  <span className="text-sm text-blue-700">{activity.message}</span>
-                </div>
-                <span className="text-xs text-blue-600">
-                  {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
       </>
     )}
   </div>

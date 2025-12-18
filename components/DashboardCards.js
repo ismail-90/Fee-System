@@ -1,10 +1,10 @@
 'use client';
-import { 
-  School, 
-  Users, 
-  DollarSign, 
-  TrendingUp, 
-  AlertCircle, 
+import {
+  School,
+  Users,
+  DollarSign,
+  TrendingUp,
+  AlertCircle,
   Upload,
   X,
   ChevronDown,
@@ -12,11 +12,12 @@ import {
   FileText,
   UserCheck
 } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, use } from 'react';
 import { uploadFeeCSVAPI } from '@/Services/feeService';
 import { getCampusesAPI } from '@/Services/campusService';
-import { getProfileAPI } from '@/Services/authService'; // Add this import
-import { useAuth } from '@/context/AuthContext'; // Add this import
+import { getProfileAPI } from '@/Services/authService';
+import { useAuth } from '@/context/AuthContext';
+import { getDashboardStatsAPI } from '@/Services/dashboardService';
 
 const Card = ({ title, value, icon: Icon, color, onClick, isUploadCard = false }) => {
   const cardContent = (
@@ -49,8 +50,8 @@ const Card = ({ title, value, icon: Icon, color, onClick, isUploadCard = false }
   return cardContent;
 };
 
-export default function DashboardCards({ data, onCSVUpload }) {
-  const { user } = useAuth(); // Get user from context
+export default function DashboardCards({ onCSVUpload }) {
+  const { user } = useAuth();
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState(null);
@@ -60,8 +61,24 @@ export default function DashboardCards({ data, onCSVUpload }) {
   const [loadingCampuses, setLoadingCampuses] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileName, setFileName] = useState('');
-  const [accountantCampus, setAccountantCampus] = useState(null); // For accountant's campus
+  const [accountantCampus, setAccountantCampus] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
+
+  const [dashboardData, setDashboardData] = useState({
+    totalCampuses: 0,
+    totalStudents: 0,
+    totalFee: 0,
+    totalExpenses: 0,
+    totalReceived: 0,
+    totalPending: 0,
+    totalDefaulters: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  // Fetch dashboard stats on component mount
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
 
   // Fetch campuses when popup opens based on role
   useEffect(() => {
@@ -73,7 +90,28 @@ export default function DashboardCards({ data, onCSVUpload }) {
       }
     }
   }, [showPopup, user]);
-  
+
+  const fetchDashboardStats = async () => {
+    setLoadingStats(true);
+    try {
+      const response = await getDashboardStatsAPI();
+      if (response.success && response.data) {
+        setDashboardData({
+          totalCampuses: response.data.totalCampuses || 0,
+          totalStudents: response.data.totalStudents || 0,
+          totalFee: response.data.totalFee || 0,
+          totalExpenses: response.data.totalExpenses || 0,
+          totalReceived: response.data.totalReceived || 0,
+          totalPending: response.data.totalPending || 0,
+          totalDefaulters: response.data.totalDefaulters || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const fetchAllCampuses = async () => {
     setLoadingCampuses(true);
@@ -85,9 +123,9 @@ export default function DashboardCards({ data, onCSVUpload }) {
       }
     } catch (error) {
       console.error('Error fetching campuses:', error);
-      setUploadMessage({ 
-        type: 'error', 
-        text: 'Failed to load campuses' 
+      setUploadMessage({
+        type: 'error',
+        text: 'Failed to load campuses'
       });
     } finally {
       setLoadingCampuses(false);
@@ -100,13 +138,13 @@ export default function DashboardCards({ data, onCSVUpload }) {
       const response = await getProfileAPI();
       if (response.campus) {
         setAccountantCampus(response.campus);
-        setSelectedCampus(response.campus._id); // Set accountant's campus as selected
+        setSelectedCampus(response.campus._id);
       }
     } catch (error) {
       console.error('Error fetching accountant profile:', error);
-      setUploadMessage({ 
-        type: 'error', 
-        text: 'Failed to load your campus information' 
+      setUploadMessage({
+        type: 'error',
+        text: 'Failed to load your campus information'
       });
     } finally {
       setLoadingProfile(false);
@@ -133,7 +171,6 @@ export default function DashboardCards({ data, onCSVUpload }) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Check file type
     if (!file.name.endsWith('.csv')) {
       setUploadMessage({ type: 'error', text: 'Please upload a CSV file (.csv extension required)' });
       setTimeout(() => setUploadMessage(null), 3000);
@@ -142,7 +179,7 @@ export default function DashboardCards({ data, onCSVUpload }) {
 
     setSelectedFile(file);
     setFileName(file.name);
-    setUploadMessage(null); // Clear any previous messages
+    setUploadMessage(null);
   };
 
   const handleUploadSubmit = async () => {
@@ -160,7 +197,6 @@ export default function DashboardCards({ data, onCSVUpload }) {
     setUploadMessage(null);
 
     try {
-      // Create form data
       const formData = new FormData();
       formData.append("file", selectedFile);
       formData.append("campusId", selectedCampus);
@@ -169,26 +205,27 @@ export default function DashboardCards({ data, onCSVUpload }) {
       console.log('File:', selectedFile.name);
 
       const response = await uploadFeeCSVAPI(formData);
-      
-      const campusName = user?.role === 'admin' 
-        ? getCampusName(selectedCampus) 
+
+      const campusName = user?.role === 'admin'
+        ? getCampusName(selectedCampus)
         : accountantCampus?.name;
-      
-      setUploadMessage({ 
-        type: 'success', 
-        text: `CSV uploaded successfully for ${campusName}! ${response?.message || 'File has been processed.'}` 
+
+      setUploadMessage({
+        type: 'success',
+        text: `CSV uploaded successfully for ${campusName}! ${response?.message || 'File has been processed.'}`
       });
 
-      // Clear selections
       setSelectedFile(null);
       setFileName('');
-      
-      // Refresh data if callback provided
+
+      // Refresh dashboard data after successful upload
+      await fetchDashboardStats();
+
+      // Call parent callback if provided
       if (onCSVUpload) {
         onCSVUpload();
       }
 
-      // Close popup after successful upload
       setTimeout(() => {
         setShowPopup(false);
         setUploadMessage(null);
@@ -196,14 +233,14 @@ export default function DashboardCards({ data, onCSVUpload }) {
 
     } catch (error) {
       console.error('CSV upload error:', error);
-      const errorMsg = error.response?.data?.message || 
-                      error.response?.data?.error || 
-                      error.message || 
-                      'Failed to upload CSV file. Please try again.';
-      
-      setUploadMessage({ 
-        type: 'error', 
-        text: errorMsg 
+      const errorMsg = error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        'Failed to upload CSV file. Please try again.';
+
+      setUploadMessage({
+        type: 'error',
+        text: errorMsg
       });
     } finally {
       setUploading(false);
@@ -216,57 +253,64 @@ export default function DashboardCards({ data, onCSVUpload }) {
   };
 
   const cards = [
-    {
+    user?.role === 'admin' && {
       title: 'Total Campuses',
-      value: data?.totalCampuses || 0,
+      value: loadingStats ? 'Loading...' : dashboardData.totalCampuses,
       icon: School,
       color: 'bg-blue-500'
     },
     {
       title: 'Total Students',
-      value: data?.totalStudents || 0,
+      value: loadingStats ? 'Loading...' : dashboardData.totalStudents,
       icon: Users,
       color: 'bg-green-500'
     },
     {
+      title: 'Total Defaulters',
+      value: loadingStats ? 'Loading...' : dashboardData.totalDefaulters,
+      icon: Users,
+      color: 'bg-yellow-500'
+    },
+    user?.role === 'accountant' && {
+      title: 'Fee Cleared',
+      value: dashboardData.totalStudents - dashboardData.totalDefaulters,
+      icon: UserCheck,
+      color: 'bg-green-600'
+    },
+    {
       title: 'Total Fee',
-      value: `Rs.${(data?.totalFee || 0).toLocaleString()}`,
+      value: loadingStats ? 'Loading...' : `Rs.${(dashboardData.totalFee).toLocaleString()}`,
       icon: DollarSign,
       color: 'bg-purple-500'
     },
     {
       title: 'Expenses',
-      value: `Rs.${(data?.expenses || 0).toLocaleString()}`,
+      value: loadingStats ? 'Loading...' : `Rs.${(dashboardData.totalExpenses).toLocaleString()}`,
       icon: TrendingUp,
       color: 'bg-orange-500'
     },
     {
       title: 'Total Received',
-      value: `Rs.${(data?.totalReceived || 0).toLocaleString()}`,
+      value: loadingStats ? 'Loading...' : `Rs.${(dashboardData.totalReceived).toLocaleString()}`,
       icon: DollarSign,
       color: 'bg-teal-500'
     },
     {
       title: 'Total Pending',
-      value: `Rs.${(data?.totalPending || 0).toLocaleString()}`,
+      value: loadingStats ? 'Loading...' : `Rs.${(dashboardData.totalPending).toLocaleString()}`,
       icon: AlertCircle,
       color: 'bg-red-500'
     },
-    {
-      title: 'Total Defaulters',
-      value: data?.totalDefaulters || 0,
-      icon: Users,
-      color: 'bg-yellow-500'
-    },
+
     {
       title: 'Import CSV',
       value: uploading ? 'Uploading...' : 'Upload CSV',
-      icon: uploading ? Upload : Upload,
+      icon: Upload,
       color: 'bg-indigo-500',
       onClick: handleCSVUploadClick,
       isUploadCard: true
     }
-  ];
+  ].filter(Boolean);
 
   return (
     <>
@@ -311,13 +355,11 @@ export default function DashboardCards({ data, onCSVUpload }) {
       {/* CSV Upload Popup */}
       {showPopup && (
         <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
-          {/* Light backdrop with minimal blur */}
-          <div 
+          <div
             className="absolute inset-0 bg-gray-900/10 backdrop-blur-[1px]"
             onClick={handleClosePopup}
           />
-          
-          {/* Popup Container */}
+
           <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md z-10 animate-in slide-in-from-bottom-4 duration-300">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -337,14 +379,14 @@ export default function DashboardCards({ data, onCSVUpload }) {
                 disabled={uploading}
               >
                 <X className="w-5 h-5" />
+                
               </button>
             </div>
 
             {/* Content */}
             <div className="p-6 space-y-6">
-              {/* Campus Information - Different for Admin vs Accountant */}
+              {/* Campus Information */}
               {user?.role === 'admin' ? (
-                // Admin: Show campus dropdown
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Select Campus
@@ -380,7 +422,6 @@ export default function DashboardCards({ data, onCSVUpload }) {
                   </p>
                 </div>
               ) : (
-                // Accountant: Show assigned campus (read-only)
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Your Assigned Campus
@@ -426,9 +467,8 @@ export default function DashboardCards({ data, onCSVUpload }) {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all ${
-                      uploading ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                    className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all ${uploading ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                   >
                     <Upload className="w-5 h-5 mr-2 text-gray-600" />
                     <span className="text-gray-700">Choose File</span>
@@ -493,21 +533,20 @@ export default function DashboardCards({ data, onCSVUpload }) {
               <button
                 onClick={handleUploadSubmit}
                 disabled={
-                  !selectedFile || 
-                  !selectedCampus || 
-                  uploading || 
+                  !selectedFile ||
+                  !selectedCampus ||
+                  uploading ||
                   (user?.role === 'accountant' && !accountantCampus)
                 }
-                className={`px-6 py-2 rounded-lg transition-all ${
-                  !selectedFile || 
-                  !selectedCampus || 
-                  uploading || 
-                  (user?.role === 'accountant' && !accountantCampus)
+                className={`px-6 py-2 rounded-lg transition-all ${!selectedFile ||
+                    !selectedCampus ||
+                    uploading ||
+                    (user?.role === 'accountant' && !accountantCampus)
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : user?.role === 'admin' 
+                    : user?.role === 'admin'
                       ? 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
                       : 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800'
-                }`}
+                  }`}
               >
                 {uploading ? (
                   <>

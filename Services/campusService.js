@@ -24,4 +24,26 @@ export const getAllAccountantsAPI = async () => {
   return response.data;
 }
 
+// 5) Update Campus
+export const updateCampusAPI = async (campusId, data) => {
+  const response = await api.put(`/campus/update/${campusId}`, data);
+  return response.data;
+};
+
+// 6) Delete Campus
+export const deleteCampusAPI = async (campusId) => {
+  const response = await api.delete(`/campus/delete/${campusId}`);
+  return response.data;
+};
+
+// update accountant
+export const updateAccountantAPI = async (accountantId, data) => {
+  const response = await api.put(`/accountant/update/${accountantId}`, data);
+  return response.data;
+};
+// delete accountant
+export const deleteAccountantAPI = async (accountantId) => {
+  const response = await api.delete(`/accountant/delete/${accountantId}`);
+  return response.data;
+};
 

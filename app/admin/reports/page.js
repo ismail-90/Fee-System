@@ -1,14 +1,15 @@
-'use client'
-import AppLayout from '../../../components/AppLayout';
-export default function reports() {
-  return (
-<AppLayout>
-    <div>
-    
+'use client';
 
-      <h1>Invoices Report Page</h1>
-      
-    </div>
-    </AppLayout>
-  )
+import AppLayout from "../../../components/AppLayout";
+import ReportsDetails from "../../../components/Reports/ReportsDetails";
+
+ 
+
+export default function ReportPage() {
+  
+  return (
+<>
+      <ReportsDetails />
+ </>
+  );
 }

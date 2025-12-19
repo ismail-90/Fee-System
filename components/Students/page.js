@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, PlusCircle } from "lucide-react";
 import { getStudentsByClassAPI } from "@/Services/feeService";
 import AppLayout from "../../components/AppLayout";
 import StatsCards from "./StatsCards";
@@ -10,11 +10,13 @@ import FiltersSection from "./FiltersSection";
 import StudentTable from "./StudentTable";
 import StudentDetailModal from "./StudentDetailModal";
 import FeeSlipModal from "./FeeSlipModal";
+import CreateStudentModal from "./CreateStudentModal";
+import { createStudentAPI } from "@/Services/studentService";
+
 
 export default function StudentsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-
   const [students, setStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -25,16 +27,14 @@ export default function StudentsPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [feeStatusFilter, setFeeStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const itemsPerPage = 8;
-
-  // Fee Slip State
   const [isFeeSlipModalOpen, setIsFeeSlipModalOpen] = useState(false);
   const [selectedStudentForSlip, setSelectedStudentForSlip] = useState(null);
 
   // 🔐 AUTH GUARD
   useEffect(() => {
     if (loading) return;
-
     if (!user) {
       router.push("/");
       return;
@@ -44,7 +44,7 @@ export default function StudentsPage() {
   }, [user, loading]);
 
   const fetchClasses = async () => {
-    const mockClasses = ["1", "2", "3", "4", "5"];
+    const mockClasses = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
     setClasses(mockClasses);
   };
 
@@ -55,10 +55,28 @@ export default function StudentsPage() {
       setPageLoading(true);
       try {
         const res = await getStudentsByClassAPI(selectedClass);
-        setStudents(res.students || []);
-        setFilteredStudents(res.students || []);
+
+        // Check if API returned an error message
+        if (res.message === "No students found for this class") {
+          // Empty array for no students
+          setStudents([]);
+          setFilteredStudents([]);
+          // Optional: show a toast notification
+          console.log("No students found for class:", selectedClass);
+        } else if (res.data && Array.isArray(res.data)) {
+          // Normal case: students found
+          setStudents(res.data);
+          setFilteredStudents(res.data);
+        } else {
+          // Handle other response structures
+          console.warn("Unexpected API response:", res);
+          setStudents([]);
+          setFilteredStudents([]);
+        }
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching students:", err);
+        setStudents([]);
+        setFilteredStudents([]);
       } finally {
         setPageLoading(false);
       }
@@ -67,10 +85,34 @@ export default function StudentsPage() {
     fetchStudents();
   }, [selectedClass]);
 
+const handleCreateStudent = async (studentData) => {
+  try {
+    console.log("Creating student with data:", studentData);
+    
+    // API call to create student
+    const response = await createStudentAPI(studentData);
+    
+    if (response.success) {
+      alert("Student created successfully!");
+      
+      // Refresh students list
+      const res = await getStudentsByClassAPI(selectedClass);
+      if (res.data && Array.isArray(res.data)) {
+        setStudents(res.data);
+        setFilteredStudents(res.data);
+      }
+    } else {
+      alert("Failed to create student: " + (response.message || "Unknown error"));
+    }
+  } catch (error) {
+    console.error("Error creating student:", error);
+    alert("Failed to create student. Please try again.");
+  }
+};
+
   // Apply filters
   useEffect(() => {
     let result = students;
-
     // Apply search filter
     if (searchTerm) {
       result = result.filter(student =>
@@ -135,13 +177,23 @@ export default function StudentsPage() {
               <p className="text-gray-600 mt-2">Manage and monitor student information and fee status</p>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={handleExportData}
-                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                <Download size={18} />
-                Export Data
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  <PlusCircle size={18} />
+                  Create Student
+                </button>
+                <button
+                  onClick={handleExportData}
+                  className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  <Download size={18} />
+                  Export Data
+                </button>
+              </div>
+
             </div>
           </div>
 
@@ -179,7 +231,11 @@ export default function StudentsPage() {
         student={selectedStudent}
         onEdit={handleEditStudent}
       />
-
+      <CreateStudentModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreateStudent={handleCreateStudent}
+      />
       <FeeSlipModal
         isOpen={isFeeSlipModalOpen}
         onClose={() => setIsFeeSlipModalOpen(false)}

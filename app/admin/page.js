@@ -18,16 +18,16 @@ export default function AdminDashboard() {
   useEffect(() => {
     // Wait for auth to load
     if (authLoading) return;
-    
+
     // Check if user is authenticated
     const token = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
-    
+
     if (!token || !savedUser) {
       router.push('/');
       return;
     }
-    
+
     fetchDashboardData();
     fetchRecentActivity();
   }, [user, authLoading, router]);
@@ -85,43 +85,42 @@ export default function AdminDashboard() {
 
   return (
     <AppLayout >
-   <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50">
-  {/* Sidebar can be added here if needed */}
-  <div className="flex-1 p-4 sm:p-6 lg:p-8">
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8">
-      <div className="mb-4 sm:mb-0">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Welcome back, {user.name}!</p>
-      </div>
-      <div className="flex flex-wrap sm:flex-nowrap items-center space-x-0 sm:space-x-3 gap-2">
-        <div className="flex items-center px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-700">
-          <Calendar className="w-4 h-4 text-gray-500 mr-2" />
-          {new Date().toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+      <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50">
+        {/* Sidebar can be added here if needed */}
+        <div className="flex-1 p-4 sm:p-6 lg:p-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8">
+            <div className="mb-4 sm:mb-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-gray-600">Welcome back, {user.name}!</p>
+            </div>
+            <div className="flex flex-wrap sm:flex-nowrap items-center space-x-0 sm:space-x-3 gap-2">
+              <div className="flex items-center px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-700">
+                <Calendar className="w-4 h-4 text-gray-500 mr-2" />
+                {new Date().toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+              </div>
+              <button
+                onClick={fetchDashboardData}
+                disabled={loading}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+            </div>
+          ) : (
+            <>
+              <DashboardCards data={dashboardData} onCSVUpload={handleCSVUpload} />
+
+            </>
+          )}
         </div>
-        <button
-          onClick={fetchDashboardData}
-          disabled={loading}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
       </div>
-    </div>
-
-    {loading ? (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
-      </div>
-    ) : (
-      <>
-        <DashboardCards data={dashboardData} onCSVUpload={handleCSVUpload} />
-
-      </>
-    )}
-  </div>
-</div>
-
     </AppLayout>
   );
 }

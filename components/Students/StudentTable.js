@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { User, CheckCircle, XCircle, ChevronLeft, ChevronRight, Loader2, Eye, FileText } from "lucide-react";
 import Pagination from "./Pagination";
 
@@ -12,10 +13,22 @@ export default function StudentTable({
   handleViewDetails,
   handleEditStudent,
   handleExportData,
-  handleGenerateFeeSlip
+  handleGenerateFeeSlip,
+  selectedStudents = [],
+  onSelectStudent,
+  onSelectAll
 }) {
   const calculateTotalPaid = (student) => student.feePaid || 0;
   const calculateTotalDue = (student) => student.curBalance || 0;
+
+  // Fix 1: Check if ALL students on current page are selected
+  const isAllSelected = paginatedStudents.length > 0 && 
+    paginatedStudents.every(student => selectedStudents.includes(student.studentId));
+
+  // Fix 2: Check if SOME students are selected (for indeterminate state)
+  const isIndeterminate = paginatedStudents.length > 0 &&
+    paginatedStudents.some(student => selectedStudents.includes(student.studentId)) &&
+    !isAllSelected;
 
   if (pageLoading) {
     return (
@@ -32,20 +45,37 @@ export default function StudentTable({
         <table className="w-full">
           <thead className="bg-gradient-to-r from-gray-50 to-blue-50">
             <tr>
+              {/* Selection Checkbox Column - FIXED */}
+              <th className="p-4 w-12">
+                <div className="flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    ref={(input) => {
+                      if (input) {
+                        input.indeterminate = isIndeterminate;
+                      }
+                    }}
+                    onChange={() => onSelectAll(paginatedStudents.map(s => s.studentId))}
+                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                </div>
+              </th>
+              
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">ID</th>
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Student Name</th>
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Father Name</th>
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Total Fee</th>
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Paid</th>
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Balance</th>
-              <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Fee Month</th>
+              <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Status</th>
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {paginatedStudents.length === 0 ? (
               <tr>
-                <td colSpan="8" className="p-12 text-center">
+                <td colSpan="9" className="p-12 text-center">
                   <div className="flex flex-col items-center justify-center">
                     <User className="h-16 w-16 text-gray-300 mb-4" />
                     <p className="text-gray-500 text-lg">No students found</p>
@@ -55,13 +85,30 @@ export default function StudentTable({
               </tr>
             ) : (
               paginatedStudents.map((student) => (
-                <tr key={student._id} className="hover:bg-gray-50 transition-colors">
+                <tr 
+                  key={student._id} 
+                  className={`hover:bg-gray-50 transition-colors ${selectedStudents.includes(student.studentId) ? 'bg-blue-50' : ''}`}
+                >
+                  {/* Checkbox Cell - FIXED */}
+                  <td className="p-4">
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedStudents.includes(student.studentId)}
+                        onChange={() => onSelectStudent(student.studentId)}
+                        className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      />
+                    </div>
+                  </td>
+                  
+                  {/* ID Column */}
                   <td className="p-4">
                     <div className="font-mono font-bold text-gray-800 text-sm">
                       {student.studentId?.slice(-4).toUpperCase()}
                     </div>
                   </td>
                   
+                  {/* Student Name Column */}
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
@@ -74,10 +121,12 @@ export default function StudentTable({
                     </div>
                   </td>
                   
+                  {/* Father Name Column */}
                   <td className="p-4">
                     <div className="font-medium text-gray-800">{student.fatherName}</div>
                   </td>
                   
+                  {/* Total Fee Column */}
                   <td className="p-4">
                     <div className="font-bold text-gray-900">
                       Rs. {student.allTotal?.toLocaleString()}
@@ -85,6 +134,7 @@ export default function StudentTable({
                     <div className="text-xs text-gray-500 mt-1">Annual</div>
                   </td>
                   
+                  {/* Paid Column */}
                   <td className="p-4">
                     <div className="font-bold text-green-600">
                       Rs. {calculateTotalPaid(student)?.toLocaleString()}
@@ -97,6 +147,7 @@ export default function StudentTable({
                     </div>
                   </td>
                   
+                  {/* Balance Column */}
                   <td className="p-4">
                     <div className={`font-bold ${student.curBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
                       Rs. {calculateTotalDue(student)?.toLocaleString()}
@@ -106,12 +157,30 @@ export default function StudentTable({
                     </div>
                   </td>
                   
+                  {/* Status Column */}
                   <td className="p-4">
-                    <div className="font-medium text-gray-800">{student.feeMonth}</div>
+                    <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${student.curBalance > 0
+                        ? 'bg-red-50 text-red-700 border border-red-200'
+                        : 'bg-green-50 text-green-700 border border-green-200'
+                      }`}>
+                      {student.curBalance > 0 ? (
+                        <>
+                          <XCircle className="mr-1.5" size={12} />
+                          Defaulter
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="mr-1.5" size={12} />
+                          Paid
+                        </>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2">
+                      {student.feeMonth || 'N/A'}
+                    </div>
                   </td>
                   
-                  
-                  {/* Direct Action Icons */}
+                  {/* Actions Column */}
                   <td className="p-4">
                     <div className="flex items-center gap-2">
                       {/* View Details Icon */}
@@ -139,6 +208,24 @@ export default function StudentTable({
           </tbody>
         </table>
       </div>
+
+      {/* Bulk Selection Status Bar - FIXED */}
+      {selectedStudents.length > 0 && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-3 border-t border-blue-200 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+            <p className="text-sm font-medium text-blue-800">
+              {selectedStudents.length} student(s) selected
+            </p>
+          </div>
+          <button
+            onClick={() => onSelectAll([])} // Pass empty array to clear
+            className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
 
       {paginatedStudents.length > 0 && (
         <Pagination

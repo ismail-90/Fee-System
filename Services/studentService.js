@@ -17,3 +17,13 @@ export const getStudentsByCampusAPI = async (campusId) => {
   const response = await api.get(`/campus/${campusId}/students`);
   return response.data;
 }
+
+// Delete Multiple Students
+
+// ✅ Correct way to send data
+export const deleteMultipleStudentsAPI = async (studentIds) => {
+  const response = await api.post("/global/students-delete", { 
+    studentIds 
+  });
+  return response.data;
+};

@@ -150,17 +150,17 @@ export default function DefaultersPage() {
   <tr key={defaulter.defaulterId} className="hover:bg-gray-50">
     <td className="px-6 py-4 whitespace-nowrap">
       <div className="text-sm font-medium text-gray-900">
-        {defaulter.student?.name || 'N/A'}
+        {defaulter.student?.name || 'Ali'}
       </div>
     </td>
     <td className="px-6 py-4 whitespace-nowrap">
       <div className="text-sm text-gray-900">
-        {defaulter.student?.fatherName || 'N/A'}
+        {defaulter.student?.fatherName || 'Hassan'}
       </div>
     </td>
     <td className="px-6 py-4 whitespace-nowrap">
       <div className="text-sm text-gray-900">
-        {defaulter.student?.className || 'N/A'}
+        {defaulter.student?.className || '2'}
       </div>
     </td>
     <td className="px-6 py-4 whitespace-nowrap">

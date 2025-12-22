@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { Download, Loader2, PlusCircle } from "lucide-react";
+import { Download, Loader2, PlusCircle, Trash2 } from "lucide-react";
 import { getStudentsByClassAPI } from "@/Services/feeService";
 import AppLayout from "../../components/AppLayout";
 import StatsCards from "./StatsCards";
@@ -11,10 +11,14 @@ import StudentTable from "./StudentTable";
 import StudentDetailModal from "./StudentDetailModal";
 import FeeSlipModal from "./FeeSlipModal";
 import CreateStudentModal from "./CreateStudentModal";
-import { createStudentAPI } from "@/Services/studentService";
+import { createStudentAPI, deleteMultipleStudentsAPI } from "@/Services/studentService";
+import BulkDeleteModal from "./BulkDeleteModal";
 
 
 export default function StudentsPage() {
+  const [selectedStudents, setSelectedStudents] = useState([]);
+const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+const [deleting, setDeleting] = useState(false);
   const { user, loading } = useAuth();
   const router = useRouter();
   const [students, setStudents] = useState([]);
@@ -133,6 +137,92 @@ const handleCreateStudent = async (studentData) => {
     setCurrentPage(1);
   }, [students, searchTerm, feeStatusFilter]);
 
+const handleBulkDelete = async () => {
+  if (selectedStudents.length === 0) {
+    alert("Please select students to delete");
+    return;
+  }
+
+  setDeleting(true);
+  try {
+    // Step 1: Delete students via API
+    const response = await deleteMultipleStudentsAPI(selectedStudents);
+    console.log("Delete API Response:", response);
+    
+    // Step 2: Update local state WITHOUT calling API again
+    setStudents(prevStudents => 
+      prevStudents.filter(student => !selectedStudents.includes(student._id))
+    );
+    
+    setFilteredStudents(prevFiltered => 
+      prevFiltered.filter(student => !selectedStudents.includes(student._id))
+    );
+    
+    // Step 3: Clear selection and close modal
+    setSelectedStudents([]);
+    setIsDeleteModalOpen(false);
+    
+    // Step 4: Show success message
+    alert(`${selectedStudents.length} student(s) deleted successfully!`);
+    
+  } catch (error) {
+    console.error("Error deleting students:", error);
+    
+    // Better error handling
+    if (error.response?.data?.message) {
+      alert(`Failed: ${error.response.data.message}`);
+    } else if (error.message.includes("Network Error")) {
+      alert("Network error. Please check your connection.");
+    } else {
+      alert("Failed to delete students. Please try again.");
+    }
+    
+  } finally {
+    setDeleting(false);
+  }
+};
+
+// Fix the handleSelectAll function
+const handleSelectAll = (studentIds = []) => {
+  if (studentIds.length === 0) {
+    // Clear all selection
+    setSelectedStudents([]);
+    return;
+  }
+
+  // Get all student IDs from current page
+  const currentPageIds = paginatedStudents.map(student => student.studentId);
+  
+  // Check if all are already selected
+  const allSelected = currentPageIds.every(id => 
+    selectedStudents.includes(id)
+  );
+  
+  if (allSelected) {
+    // Deselect all from current page
+    setSelectedStudents(prev => 
+      prev.filter(id => !currentPageIds.includes(id))
+    );
+  } else {
+    // Select all from current page (add only missing ones)
+    const newSelection = [...new Set([...selectedStudents, ...currentPageIds])];
+    setSelectedStudents(newSelection);
+  }
+};
+
+ 
+
+// Fix handleSelectStudent to use studentId
+const handleSelectStudent = (studentId) => {
+  setSelectedStudents(prev => {
+    if (prev.includes(studentId)) {
+      return prev.filter(id => id !== studentId);
+    } else {
+      return [...prev, studentId];
+    }
+  });
+};
+
   // Pagination
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
   const paginatedStudents = filteredStudents.slice(
@@ -185,6 +275,15 @@ const handleCreateStudent = async (studentData) => {
                   <PlusCircle size={18} />
                   Create Student
                 </button>
+                {selectedStudents.length > 0 && (
+    <button
+      onClick={() => setIsDeleteModalOpen(true)}
+      className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+    >
+      <Trash2 size={18} />
+      Delete ({selectedStudents.length})
+    </button>
+  )}
                 <button
                   onClick={handleExportData}
                   className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
@@ -192,6 +291,7 @@ const handleCreateStudent = async (studentData) => {
                   <Download size={18} />
                   Export Data
                 </button>
+
               </div>
 
             </div>
@@ -209,7 +309,13 @@ const handleCreateStudent = async (studentData) => {
           feeStatusFilter={feeStatusFilter}
           setFeeStatusFilter={setFeeStatusFilter}
         />
-
+<BulkDeleteModal
+  isOpen={isDeleteModalOpen}
+  onClose={() => setIsDeleteModalOpen(false)}
+  selectedCount={selectedStudents.length}
+  onConfirm={handleBulkDelete}
+  deleting={deleting}
+/>
         <StudentTable
           pageLoading={pageLoading}
           paginatedStudents={paginatedStudents}
@@ -222,6 +328,9 @@ const handleCreateStudent = async (studentData) => {
           handleEditStudent={handleEditStudent}
           handleExportData={handleExportData}
           handleGenerateFeeSlip={handleGenerateFeeSlip}
+          selectedStudents={selectedStudents}
+  onSelectStudent={handleSelectStudent}
+  onSelectAll={handleSelectAll}
         />
       </div>
 

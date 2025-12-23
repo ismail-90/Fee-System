@@ -27,3 +27,9 @@ export const deleteMultipleStudentsAPI = async (studentIds) => {
   });
   return response.data;
 };
+
+// get All Defaulters by campus id
+export const getDefaultersByCampusAPI = async (campusId) => {
+  const response = await api.get(`/global/defaulter/${campusId}`);
+  return response.data;
+}

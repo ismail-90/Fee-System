@@ -37,6 +37,7 @@ export default function Sidebar({ open, setOpen }) {
     { name: 'Home', href: '/admin', icon: Home },
     { name: 'Campuses', href: '/admin/campus', icon: School },
     { name: 'Students', href: '/admin/students', icon: Users },
+    { name: 'Defaulters', href: '/admin/defaulters', icon: UserRoundMinus },
     { name: 'Invoices', href: '/admin/invoices', icon: FileText },
     { name: 'Reports', href: '/admin/reports', icon: BarChart3 },
     { name: 'Expenses', href: '/admin/expenses', icon: DollarSign },

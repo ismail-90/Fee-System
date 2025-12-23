@@ -11,3 +11,9 @@ export const payInvoiceAPI = async (paymentData) => {
   const response = await api.post(`/global/pay-invoice`, paymentData);
   return response.data;
 }
+
+// get All Invoices by campus id
+export const getInvoicesByCampusAPI = async (campusId) => {
+  const response = await api.get(`/global/${campusId}/invoices`);
+  return response.data;
+}

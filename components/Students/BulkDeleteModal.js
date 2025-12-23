@@ -19,7 +19,7 @@ export default function BulkDeleteModal({
               <div className="p-2 bg-red-100 rounded-lg">
                 <AlertTriangle className="text-red-600" size={24} />
               </div>
-              <h2 className="text-xl font-bold text-gray-800">Confirm Delete</h2>
+              <h2 className="text-xl font-bold text-gray-800">Confirm InActive</h2>
             </div>
             <button
               onClick={onClose}
@@ -32,11 +32,11 @@ export default function BulkDeleteModal({
 
           <div className="mb-6">
             <p className="text-gray-700 mb-3">
-              Are you sure you want to delete <span className="font-bold text-red-600">{selectedCount}</span> student(s)?
+              Are you sure you want to InActive <span className="font-bold text-red-600">{selectedCount}</span> student(s)?
             </p>
             <div className="bg-red-50 p-4 rounded-lg border border-red-200">
               <p className="text-sm text-red-700">
-                <span className="font-semibold">Warning:</span> This action cannot be undone. All student data, including fee records, will be permanently deleted.
+                <span className="font-semibold">Warning:</span> This action cannot be undone. Student will be marked as inactive.
               </p>
             </div>
           </div>
@@ -57,12 +57,12 @@ export default function BulkDeleteModal({
               {deleting ? (
                 <>
                   <Loader2 className="animate-spin" size={16} />
-                  Deleting...
+                  InActivating...
                 </>
               ) : (
                 <>
                   <Trash2 size={16} />
-                  Delete Permanently
+                  InActive Student
                 </>
               )}
             </button>

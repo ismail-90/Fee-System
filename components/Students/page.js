@@ -14,22 +14,26 @@ import CreateStudentModal from "./CreateStudentModal";
 import { createStudentAPI, deleteMultipleStudentsAPI } from "@/Services/studentService";
 import BulkDeleteModal from "./BulkDeleteModal";
 
-
 export default function StudentsPage() {
   const [selectedStudents, setSelectedStudents] = useState([]);
-const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-const [deleting, setDeleting] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { user, loading } = useAuth();
   const router = useRouter();
   const [students, setStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState("1");
+  const [sections, setSections] = useState([]);
+  const [selectedSection, setSelectedSection] = useState("all");
+  const [feeMonths, setFeeMonths] = useState([]);
+  const [selectedFeeMonth, setSelectedFeeMonth] = useState("all");
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [pageLoading, setPageLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [feeStatusFilter, setFeeStatusFilter] = useState("all");
+  const [studentStatusFilter, setStudentStatusFilter] = useState("active");
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const itemsPerPage = 8;
@@ -62,25 +66,41 @@ const [deleting, setDeleting] = useState(false);
 
         // Check if API returned an error message
         if (res.message === "No students found for this class") {
-          // Empty array for no students
           setStudents([]);
           setFilteredStudents([]);
-          // Optional: show a toast notification
-          console.log("No students found for class:", selectedClass);
+          setSections([]); // Clear sections if no students
+          setFeeMonths([]); // Clear months if no students
         } else if (res.data && Array.isArray(res.data)) {
-          // Normal case: students found
           setStudents(res.data);
           setFilteredStudents(res.data);
+          
+          // Extract unique sections from students
+          const uniqueSections = [...new Set(res.data
+            .map(student => student.section)
+            .filter(section => section && section.trim() !== '')
+          )];
+          setSections(uniqueSections);
+          
+          // Extract unique fee months from students
+          const uniqueFeeMonths = [...new Set(res.data
+            .map(student => student.feeMonth)
+            .filter(month => month && month.trim() !== '')
+          )];
+          setFeeMonths(uniqueFeeMonths);
+          
         } else {
-          // Handle other response structures
           console.warn("Unexpected API response:", res);
           setStudents([]);
           setFilteredStudents([]);
+          setSections([]);
+          setFeeMonths([]);
         }
       } catch (err) {
         console.error("Error fetching students:", err);
         setStudents([]);
         setFilteredStudents([]);
+        setSections([]);
+        setFeeMonths([]);
       } finally {
         setPageLoading(false);
       }
@@ -89,139 +109,156 @@ const [deleting, setDeleting] = useState(false);
     fetchStudents();
   }, [selectedClass]);
 
-const handleCreateStudent = async (studentData) => {
-  try {
-    console.log("Creating student with data:", studentData);
-    
-    // API call to create student
-    const response = await createStudentAPI(studentData);
-    
-    if (response.success) {
-      alert("Student created successfully!");
+  const handleCreateStudent = async (studentData) => {
+    try {
+      console.log("Creating student with data:", studentData);
       
-      // Refresh students list
-      const res = await getStudentsByClassAPI(selectedClass);
-      if (res.data && Array.isArray(res.data)) {
-        setStudents(res.data);
-        setFilteredStudents(res.data);
+      const response = await createStudentAPI(studentData);
+      
+      if (response.success) {
+        alert("Student created successfully!");
+        
+        // Refresh students list
+        const res = await getStudentsByClassAPI(selectedClass);
+        if (res.data && Array.isArray(res.data)) {
+          setStudents(res.data);
+          setFilteredStudents(res.data);
+          
+          // Update sections and months
+          const uniqueSections = [...new Set(res.data
+            .map(student => student.section)
+            .filter(section => section && section.trim() !== '')
+          )];
+          setSections(uniqueSections);
+          
+          const uniqueFeeMonths = [...new Set(res.data
+            .map(student => student.feeMonth)
+            .filter(month => month && month.trim() !== '')
+          )];
+          setFeeMonths(uniqueFeeMonths);
+        }
+      } else {
+        alert("Failed to create student: " + (response.message || "Unknown error"));
       }
-    } else {
-      alert("Failed to create student: " + (response.message || "Unknown error"));
+    } catch (error) {
+      console.error("Error creating student:", error);
+      alert("Failed to create student. Please try again.");
     }
-  } catch (error) {
-    console.error("Error creating student:", error);
-    alert("Failed to create student. Please try again.");
-  }
-};
+  };
 
-  // Apply filters
+  // Apply filters - اب sections aur fee month bhi include karein
   useEffect(() => {
     let result = students;
+    
     // Apply search filter
     if (searchTerm) {
       result = result.filter(student =>
         student.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.studentId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.fatherName?.toLowerCase().includes(searchTerm.toLowerCase())
+        student.fatherName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.className?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.section?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    // Apply fee status filter
-    if (feeStatusFilter === "paid") {
-      result = result.filter(student => student.curBalance <= 0);
-    } else if (feeStatusFilter === "defaulter") {
-      result = result.filter(student => student.curBalance > 0);
+    // Apply section filter
+    if (selectedSection !== "all") {
+      result = result.filter(student => student.section === selectedSection);
+    }
+
+    // Apply fee month filter
+    if (selectedFeeMonth !== "all") {
+      result = result.filter(student => student.feeMonth === selectedFeeMonth);
+    }
+
+    // Apply student status filter
+    if (studentStatusFilter === "active") {
+      result = result.filter(student => student.status === "active");
+    } else if (studentStatusFilter === "inactive") {
+      result = result.filter(student => student.status === "inactive");
     }
 
     setFilteredStudents(result);
     setCurrentPage(1);
-  }, [students, searchTerm, feeStatusFilter]);
+  }, [students, searchTerm, selectedSection, selectedFeeMonth, studentStatusFilter]);
 
-const handleBulkDelete = async () => {
-  if (selectedStudents.length === 0) {
-    alert("Please select students to delete");
-    return;
-  }
-
-  setDeleting(true);
-  try {
-    // Step 1: Delete students via API
-    const response = await deleteMultipleStudentsAPI(selectedStudents);
-    console.log("Delete API Response:", response);
-    
-    // Step 2: Update local state WITHOUT calling API again
-    setStudents(prevStudents => 
-      prevStudents.filter(student => !selectedStudents.includes(student._id))
-    );
-    
-    setFilteredStudents(prevFiltered => 
-      prevFiltered.filter(student => !selectedStudents.includes(student._id))
-    );
-    
-    // Step 3: Clear selection and close modal
-    setSelectedStudents([]);
-    setIsDeleteModalOpen(false);
-    
-    // Step 4: Show success message
-    alert(`${selectedStudents.length} student(s) deleted successfully!`);
-    
-  } catch (error) {
-    console.error("Error deleting students:", error);
-    
-    // Better error handling
-    if (error.response?.data?.message) {
-      alert(`Failed: ${error.response.data.message}`);
-    } else if (error.message.includes("Network Error")) {
-      alert("Network error. Please check your connection.");
-    } else {
-      alert("Failed to delete students. Please try again.");
+  const handleBulkDelete = async () => {
+    if (selectedStudents.length === 0) {
+      alert("Please select students to delete");
+      return;
     }
-    
-  } finally {
-    setDeleting(false);
-  }
-};
 
-// Fix the handleSelectAll function
-const handleSelectAll = (studentIds = []) => {
-  if (studentIds.length === 0) {
-    // Clear all selection
-    setSelectedStudents([]);
-    return;
-  }
-
-  // Get all student IDs from current page
-  const currentPageIds = paginatedStudents.map(student => student.studentId);
-  
-  // Check if all are already selected
-  const allSelected = currentPageIds.every(id => 
-    selectedStudents.includes(id)
-  );
-  
-  if (allSelected) {
-    // Deselect all from current page
-    setSelectedStudents(prev => 
-      prev.filter(id => !currentPageIds.includes(id))
-    );
-  } else {
-    // Select all from current page (add only missing ones)
-    const newSelection = [...new Set([...selectedStudents, ...currentPageIds])];
-    setSelectedStudents(newSelection);
-  }
-};
-
- 
-
-// Fix handleSelectStudent to use studentId
-const handleSelectStudent = (studentId) => {
-  setSelectedStudents(prev => {
-    if (prev.includes(studentId)) {
-      return prev.filter(id => id !== studentId);
-    } else {
-      return [...prev, studentId];
+    setDeleting(true);
+    try {
+      const response = await deleteMultipleStudentsAPI(selectedStudents);
+      console.log("Delete API Response:", response);
+      
+      setStudents(prevStudents => 
+        prevStudents.filter(student => !selectedStudents.includes(student._id))
+      );
+      
+      setFilteredStudents(prevFiltered => 
+        prevFiltered.filter(student => !selectedStudents.includes(student._id))
+      );
+      
+      // Update sections after deletion
+      const updatedStudents = students.filter(student => !selectedStudents.includes(student._id));
+      const uniqueSections = [...new Set(updatedStudents
+        .map(student => student.section)
+        .filter(section => section && section.trim() !== '')
+      )];
+      setSections(uniqueSections);
+      
+      setSelectedStudents([]);
+      setIsDeleteModalOpen(false);
+      alert(`${selectedStudents.length} student(s) InActive successfully!`);
+      
+    } catch (error) {
+      console.error("Error deleting students:", error);
+      
+      if (error.response?.data?.message) {
+        alert(`Failed: ${error.response.data.message}`);
+      } else if (error.message.includes("Network Error")) {
+        alert("Network error. Please check your connection.");
+      } else {
+        alert("Failed to InActive students. Please try again.");
+      }
+      
+    } finally {
+      setDeleting(false);
     }
-  });
-};
+  };
+
+  const handleSelectAll = (studentIds = []) => {
+    if (studentIds.length === 0) {
+      setSelectedStudents([]);
+      return;
+    }
+
+    const currentPageIds = paginatedStudents.map(student => student.studentId);
+    const allSelected = currentPageIds.every(id => 
+      selectedStudents.includes(id)
+    );
+    
+    if (allSelected) {
+      setSelectedStudents(prev => 
+        prev.filter(id => !currentPageIds.includes(id))
+      );
+    } else {
+      const newSelection = [...new Set([...selectedStudents, ...currentPageIds])];
+      setSelectedStudents(newSelection);
+    }
+  };
+
+  const handleSelectStudent = (studentId) => {
+    setSelectedStudents(prev => {
+      if (prev.includes(studentId)) {
+        return prev.filter(id => id !== studentId);
+      } else {
+        return [...prev, studentId];
+      }
+    });
+  };
 
   // Pagination
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
@@ -276,14 +313,14 @@ const handleSelectStudent = (studentId) => {
                   Create Student
                 </button>
                 {selectedStudents.length > 0 && (
-    <button
-      onClick={() => setIsDeleteModalOpen(true)}
-      className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-    >
-      <Trash2 size={18} />
-      Delete ({selectedStudents.length})
-    </button>
-  )}
+                  <button
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                  >
+                    <Trash2 size={18} />
+                    InActive ({selectedStudents.length})
+                  </button>
+                )}
                 <button
                   onClick={handleExportData}
                   className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
@@ -291,31 +328,38 @@ const handleSelectStudent = (studentId) => {
                   <Download size={18} />
                   Export Data
                 </button>
-
               </div>
-
             </div>
           </div>
 
           <StatsCards students={students} />
         </div>
 
+        {/* FiltersSection ko ab saare props pass karein */}
         <FiltersSection
           classes={classes}
           selectedClass={selectedClass}
           setSelectedClass={setSelectedClass}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          feeStatusFilter={feeStatusFilter}
-          setFeeStatusFilter={setFeeStatusFilter}
+          studentStatusFilter={studentStatusFilter}
+          setStudentStatusFilter={setStudentStatusFilter}
+          sections={sections}
+          selectedSection={selectedSection}
+          setSelectedSection={setSelectedSection}
+          feeMonths={feeMonths}
+          selectedFeeMonth={selectedFeeMonth}
+          setSelectedFeeMonth={setSelectedFeeMonth}
         />
-<BulkDeleteModal
-  isOpen={isDeleteModalOpen}
-  onClose={() => setIsDeleteModalOpen(false)}
-  selectedCount={selectedStudents.length}
-  onConfirm={handleBulkDelete}
-  deleting={deleting}
-/>
+        
+        <BulkDeleteModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          selectedCount={selectedStudents.length}
+          onConfirm={handleBulkDelete}
+          deleting={deleting}
+        />
+
         <StudentTable
           pageLoading={pageLoading}
           paginatedStudents={paginatedStudents}
@@ -329,8 +373,8 @@ const handleSelectStudent = (studentId) => {
           handleExportData={handleExportData}
           handleGenerateFeeSlip={handleGenerateFeeSlip}
           selectedStudents={selectedStudents}
-  onSelectStudent={handleSelectStudent}
-  onSelectAll={handleSelectAll}
+          onSelectStudent={handleSelectStudent}
+          onSelectAll={handleSelectAll}
         />
       </div>
 

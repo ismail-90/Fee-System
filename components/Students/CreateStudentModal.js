@@ -17,19 +17,111 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
       name: "",
       fatherName: "",
       className: "1",
-      campusId: ""
+      campusId: "",
+      section: "A"
     },
     fee: {
+      ts: 0,
+      cs: 0,
       feeMonth: "",
       tutionFee: 0,
       labsFee: 0,
-      examFeeTotal: 0,
+      lateFeeFine: 0,
       extraFee: 0,
       others: 0,
-      lateFeeFine: 0,
+      examFeeTotal: 0,
+      examFeeCurrentPaid: 0,
+      examFeeBalanced: 0,
+      karateFeeTotal: 0,
+      karateFeeCurrentPaid: 0,
+      karateFeeBalanced: 0,
+      admissionFeeTotal: 0,
+      admissionFeeCurrentPaid: 0,
+      admissionFeeBalanced: 0,
+      registrationFee: 0,
+      annualChargesTotal: 0,
+      annualChargesPaid: 0,
+      annualChargesBalanced: 0,
       prevBal: 0,
+      feePaid: 0,
+      curBalance: 0,
+      allTotal: 0,
     }
   });
+
+  // Calculate totals when fee values change
+  useEffect(() => {
+    const calculateTotals = () => {
+      const {
+        tutionFee = 0,
+        labsFee = 0,
+        lateFeeFine = 0,
+        extraFee = 0,
+        others = 0,
+        examFeeTotal = 0,
+        examFeeCurrentPaid = 0,
+        karateFeeTotal = 0,
+        karateFeeCurrentPaid = 0,
+        admissionFeeTotal = 0,
+        admissionFeeCurrentPaid = 0,
+        registrationFee = 0,
+        annualChargesTotal = 0,
+        annualChargesPaid = 0,
+        prevBal = 0,
+        feePaid = 0
+      } = formData.fee;
+
+      // Calculate balanced amounts
+      const examFeeBalanced = Math.max(0, examFeeTotal - examFeeCurrentPaid);
+      const karateFeeBalanced = Math.max(0, karateFeeTotal - karateFeeCurrentPaid);
+      const admissionFeeBalanced = Math.max(0, admissionFeeTotal - admissionFeeCurrentPaid);
+      const annualChargesBalanced = Math.max(0, annualChargesTotal - annualChargesPaid);
+
+      // Calculate current balance
+      const currentTotal = tutionFee + labsFee + lateFeeFine + extraFee + others + 
+                          examFeeTotal + karateFeeTotal + admissionFeeTotal + 
+                          registrationFee + annualChargesTotal + prevBal;
+      
+      const totalPaid = examFeeCurrentPaid + karateFeeCurrentPaid + 
+                       admissionFeeCurrentPaid + annualChargesPaid + feePaid;
+      
+      const curBalance = Math.max(0, currentTotal - totalPaid);
+      const allTotal = currentTotal;
+
+      // Update form data with calculated values
+      setFormData(prev => ({
+        ...prev,
+        fee: {
+          ...prev.fee,
+          examFeeBalanced,
+          karateFeeBalanced,
+          admissionFeeBalanced,
+          annualChargesBalanced,
+          curBalance,
+          allTotal
+        }
+      }));
+    };
+
+    calculateTotals();
+  }, [
+    formData.fee.tutionFee,
+    formData.fee.labsFee,
+    formData.fee.lateFeeFine,
+    formData.fee.extraFee,
+    formData.fee.others,
+    formData.fee.examFeeTotal,
+    formData.fee.examFeeCurrentPaid,
+    formData.fee.karateFeeTotal,
+    formData.fee.karateFeeCurrentPaid,
+    formData.fee.admissionFeeTotal,
+    formData.fee.admissionFeeCurrentPaid,
+    formData.fee.registrationFee,
+    formData.fee.annualChargesTotal,
+    formData.fee.annualChargesPaid,
+    formData.fee.prevBal,
+    formData.fee.feePaid
+  ]);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -44,17 +136,35 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
         name: "",
         fatherName: "",
         className: "1",
-        campusId: ""
+        campusId: "",
+        section: "A"
       },
       fee: {
+        ts: 0,
+        cs: 0,
         feeMonth: "",
         tutionFee: 0,
         labsFee: 0,
-        examFeeTotal: 0,
+        lateFeeFine: 0,
         extraFee: 0,
         others: 0,
-        lateFeeFine: 0,
+        examFeeTotal: 0,
+        examFeeCurrentPaid: 0,
+        examFeeBalanced: 0,
+        karateFeeTotal: 0,
+        karateFeeCurrentPaid: 0,
+        karateFeeBalanced: 0,
+        admissionFeeTotal: 0,
+        admissionFeeCurrentPaid: 0,
+        admissionFeeBalanced: 0,
+        registrationFee: 0,
+        annualChargesTotal: 0,
+        annualChargesPaid: 0,
+        annualChargesBalanced: 0,
         prevBal: 0,
+        feePaid: 0,
+        curBalance: 0,
+        allTotal: 0,
       }
     });
     setSelectedCampusName("");
@@ -67,9 +177,18 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
         setLoadingCampuses(true);
         try {
           if (user.role === 'accountant') {
-            // For accountant, use their campus_id from profile
-            const campusId = user.campus_id || user.profile?.campus_id || "6930155397209b93b965d546";
-            const campusName = user.campus?.name || "Royal Campus Har";
+            const campusId = user.campus?._id || 
+                            user.campus_id || 
+                            user.profile?.campus?._id;
+            
+            const campusName = user.campus?.name || 
+                             user.campus_name || 
+                             user.profile?.campus?.name;
+            
+            if (!campusId) {
+              toast.error("No campus assigned to your account. Please contact administrator.");
+              return;
+            }
             
             setFormData(prev => ({
               ...prev,
@@ -78,12 +197,12 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
                 campusId: campusId
               }
             }));
-            setSelectedCampusName(campusName);
-          } else if (user.role === 'admin') {
-            // For admin, fetch all campuses
-            const response = await getCampusesAPI();
-            console.log("Campuses API Response:", response);
             
+            setSelectedCampusName(campusName || "Assigned Campus");
+            toast.success(`Campus set to: ${campusName || "Your assigned campus"}`);
+            
+          } else if (user.role === 'admin') {
+            const response = await getCampusesAPI();
             let campusesData = [];
             
             if (response.campuses && Array.isArray(response.campuses)) {
@@ -105,7 +224,6 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
               }));
               setSelectedCampusName(campusesData[0].name);
             } else {
-              console.warn("No campuses found in response");
               toast.error("No campuses available");
             }
           }
@@ -144,8 +262,11 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
       
       // Parse number fields
       const numericFields = [
-        'tutionFee', 'labsFee', 'examFeeTotal', 'extraFee', 
-        'others', 'lateFeeFine', 'prevBal'
+        'ts', 'cs', 'tutionFee', 'labsFee', 'lateFeeFine', 'extraFee', 
+        'others', 'examFeeTotal', 'examFeeCurrentPaid', 'karateFeeTotal',
+        'karateFeeCurrentPaid', 'admissionFeeTotal', 'admissionFeeCurrentPaid',
+        'registrationFee', 'annualChargesTotal', 'annualChargesPaid',
+        'prevBal', 'feePaid'
       ];
       
       const newValue = numericFields.includes(fieldName) 
@@ -191,26 +312,41 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
           name: formData.student.name.trim(),
           fatherName: formData.student.fatherName.trim(),
           className: formData.student.className,
-          campusId: formData.student.campusId
+          campusId: formData.student.campusId,
+          section: formData.student.section
         },
         fee: {
+          ts: formData.fee.ts,
+          cs: formData.fee.cs,
           feeMonth: formData.fee.feeMonth,
           tutionFee: formData.fee.tutionFee,
           labsFee: formData.fee.labsFee,
-          examFeeTotal: formData.fee.examFeeTotal,
+          lateFeeFine: formData.fee.lateFeeFine,
           extraFee: formData.fee.extraFee,
           others: formData.fee.others,
-          lateFeeFine: formData.fee.lateFeeFine,
-          prevBal: formData.fee.prevBal
+          examFeeTotal: formData.fee.examFeeTotal,
+          examFeeCurrentPaid: formData.fee.examFeeCurrentPaid,
+          examFeeBalanced: formData.fee.examFeeBalanced,
+          karateFeeTotal: formData.fee.karateFeeTotal,
+          karateFeeCurrentPaid: formData.fee.karateFeeCurrentPaid,
+          karateFeeBalanced: formData.fee.karateFeeBalanced,
+          admissionFeeTotal: formData.fee.admissionFeeTotal,
+          admissionFeeCurrentPaid: formData.fee.admissionFeeCurrentPaid,
+          admissionFeeBalanced: formData.fee.admissionFeeBalanced,
+          registrationFee: formData.fee.registrationFee,
+          annualChargesTotal: formData.fee.annualChargesTotal,
+          annualChargesPaid: formData.fee.annualChargesPaid,
+          annualChargesBalanced: formData.fee.annualChargesBalanced,
+          prevBal: formData.fee.prevBal,
+          feePaid: formData.fee.feePaid,
+          curBalance: formData.fee.curBalance,
+          allTotal: formData.fee.allTotal,
         }
       };
       
       console.log("Submitting student data:", apiData);
       
-      // Pass data as-is to parent component
       await onCreateStudent(apiData);
-      
-      // If successful, close modal
       onClose();
       
     } catch (error) {
@@ -225,7 +361,7 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-700 text-white p-6 rounded-t-2xl flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -245,7 +381,7 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
         </div>
 
         <form onSubmit={handleSubmit} className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             {/* Left Column - Student Information */}
             <div className="space-y-6">
@@ -288,105 +424,47 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Class *
-                    </label>
-                    <select
-                      name="student.className"
-                      value={formData.student.className}
-                      onChange={handleChange}
-                      required
-                      disabled={submitting}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <option key={i + 1} value={`${i + 1}`}>
-                          Class {i + 1}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Class *
+                      </label>
+                      <select
+                        name="student.className"
+                        value={formData.student.className}
+                        onChange={handleChange}
+                        required
+                        disabled={submitting}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {Array.from({ length: 12 }, (_, i) => (
+                          <option key={i + 1} value={`${i + 1}`}>
+                            Class {i + 1}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Section
+                      </label>
+                      <select
+                        name="student.section"
+                        value={formData.student.section}
+                        onChange={handleChange}
+                        disabled={submitting}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50"
+                      >
+                        {['A', 'B', 'C', 'D'].map(section => (
+                          <option key={section} value={section}>
+                            Section {section}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Campus *
-                    </label>
-                    {loadingCampuses ? (
-                      <div className="flex items-center gap-2 py-2.5">
-                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                        <span className="text-sm text-gray-500">Loading campuses...</span>
-                      </div>
-                    ) : user?.role === 'accountant' ? (
-                      // For Accountant - Read only field
-                      <div>
-                        <input
-                          type="text"
-                          value={selectedCampusName}
-                          readOnly
-                          disabled={submitting}
-                          className="w-full px-4 py-2.5 border border-gray-300 bg-gray-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Accountant can only add students to their assigned campus
-                        </p>
-                        <input
-                          type="hidden"
-                          name="student.campusId"
-                          value={formData.student.campusId}
-                        />
-                      </div>
-                    ) : user?.role === 'admin' ? (
-                      // For Admin - Dropdown with all campuses
-                      <div>
-                        <select
-                          name="student.campusId"
-                          value={formData.student.campusId}
-                          onChange={handleChange}
-                          required
-                          disabled={submitting || campuses.length === 0}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {campuses.length === 0 ? (
-                            <option value="">No campuses available</option>
-                          ) : (
-                            <>
-                              <option value="">Select Campus</option>
-                              {campuses.map(campus => (
-                                <option key={campus._id} value={campus._id}>
-                                  {campus.name} - {campus.city}
-                                </option>
-                              ))}
-                            </>
-                          )}
-                        </select>
-                        {campuses.length === 0 && !loadingCampuses && (
-                          <p className="text-xs text-red-500 mt-1">
-                            No campuses found. Please contact administrator.
-                          </p>
-                        )}
-                        {selectedCampusName && (
-                          <p className="text-xs text-green-600 mt-1">
-                            Selected: {selectedCampusName}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-500">
-                        Campus selection not available for your role
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column - Fee Information */}
-            <div className="space-y-6">
-              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Fee Details</h3>
-                
-                <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Fee Month *
@@ -400,62 +478,243 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <option value="">Select Month</option>
-                      <option value="jan">January</option>
-                      <option value="feb">February</option>
-                      <option value="mar">March</option>
-                      <option value="apr">April</option>
-                      <option value="may">May</option>
-                      <option value="jun">June</option>
-                      <option value="jul">July</option>
-                      <option value="aug">August</option>
-                      <option value="sep">September</option>
-                      <option value="oct">October</option>
-                      <option value="nov">November</option>
-                      <option value="dec">December</option>
+                      <option value="Jan">January</option>
+                      <option value="Feb">February</option>
+                      <option value="Mar">March</option>
+                      <option value="Apr">April</option>
+                      <option value="May">May</option>
+                      <option value="Jun">June</option>
+                      <option value="Jul">July</option>
+                      <option value="Aug">August</option>
+                      <option value="Sep">September</option>
+                      <option value="Oct">October</option>
+                      <option value="Nov">November</option>
+                      <option value="Dec">December</option>
                     </select>
                   </div>
 
-                  {/* Basic Fees */}
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-gray-700">Basic Fees (Rs.)</h4>
-                    {[
-                      { key: 'tutionFee', label: 'Tuition Fee' },
-                      { key: 'labsFee', label: 'Labs Fee' },
-                      { key: 'examFeeTotal', label: 'Exam Fee Total' },
-                      { key: 'extraFee', label: 'Extra Fee' },
-                      { key: 'others', label: 'Others' },
-                      { key: 'lateFeeFine', label: 'Late Fee Fine' }
-                    ].map(({ key, label }) => (
-                      <div key={key} className="flex items-center justify-between">
-                        <label className="text-sm text-gray-600">{label}:</label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Campus *
+                    </label>
+                    {loadingCampuses ? (
+                      <div className="flex items-center gap-2 py-2.5">
+                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                        <span className="text-sm text-gray-500">Loading campuses...</span>
+                      </div>
+                    ) : user?.role === 'accountant' ? (
+                      <div>
+                        <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <span className="text-blue-600 font-bold">
+                              {selectedCampusName?.charAt(0) || 'C'}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-blue-800">
+                              {selectedCampusName || "Your Assigned Campus"}
+                            </p>
+                          </div>
+                        </div>
                         <input
-                          type="number"
-                          name={`fee.${key}`}
-                          value={formData.fee[key]}
-                          onChange={handleChange}
-                          min="0"
-                          disabled={submitting}
-                          className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-right disabled:opacity-50"
+                          type="hidden"
+                          name="student.campusId"
+                          value={formData.student.campusId}
                         />
                       </div>
-                    ))}
+                    ) : user?.role === 'admin' ? (
+                      <select
+                        name="student.campusId"
+                        value={formData.student.campusId}
+                        onChange={handleChange}
+                        required
+                        disabled={submitting || campuses.length === 0}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {campuses.length === 0 ? (
+                          <option value="">No campuses available</option>
+                        ) : (
+                          <>
+                            <option value="">Select Campus</option>
+                            {campuses.map(campus => (
+                              <option key={campus._id} value={campus._id}>
+                                {campus.name} - {campus.city}
+                              </option>
+                            ))}
+                          </>
+                        )}
+                      </select>
+                    ) : (
+                      <div className="text-sm text-gray-500">
+                        Campus selection not available for your role
+                      </div>
+                    )}
                   </div>
+                </div>
+              </div>
+            </div>
 
-                  {/* Previous Balance */}
-                  <div className="pt-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700">Previous Balance (Rs.):</label>
+            {/* Middle Column - Basic Fees */}
+            <div className="space-y-6">
+              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Basic Fees (Rs.)</h3>
+                
+                <div className="space-y-4">
+                  {[
+                    { key: 'tutionFee', label: 'Tuition Fee' },
+                    { key: 'labsFee', label: 'Labs Fee' },
+                    { key: 'lateFeeFine', label: 'Late Fee Fine' },
+                    { key: 'extraFee', label: 'Extra Fee' },
+                    { key: 'others', label: 'Others' },
+                    { key: 'registrationFee', label: 'Registration Fee' },
+                    { key: 'prevBal', label: 'Previous Balance' },
+                    { key: 'feePaid', label: 'Fee Paid' },
+                  ].map(({ key, label }) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <label className="text-sm text-gray-600">{label}:</label>
                       <input
                         type="number"
-                        name="fee.prevBal"
-                        value={formData.fee.prevBal}
+                        name={`fee.${key}`}
+                        value={formData.fee[key]}
                         onChange={handleChange}
                         min="0"
                         disabled={submitting}
                         className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-right disabled:opacity-50"
                       />
                     </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Total Summary */}
+              <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Total Summary (Rs.)</h3>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between py-2 border-b border-green-200">
+                    <span className="text-sm font-medium text-gray-700">Current Balance:</span>
+                    <span className="text-lg font-bold text-green-700">
+                      Rs. {formData.fee.curBalance.toLocaleString()}
+                    </span>
                   </div>
+                  
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm font-medium text-gray-700">All Total:</span>
+                    <span className="text-xl font-bold text-blue-700">
+                      Rs. {formData.fee.allTotal.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Special Fees */}
+            <div className="space-y-6">
+              {/* Exam Fee Section */}
+              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Exam Fee (Rs.)</h3>
+                
+                <div className="space-y-3">
+                  {[
+                    { key: 'examFeeTotal', label: 'Total' },
+                    { key: 'examFeeCurrentPaid', label: 'Current Paid' },
+                    { key: 'examFeeBalanced', label: 'Balanced', readOnly: true }
+                  ].map(({ key, label, readOnly }) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <label className="text-sm text-gray-600">{label}:</label>
+                      <input
+                        type="number"
+                        name={`fee.${key}`}
+                        value={formData.fee[key]}
+                        onChange={handleChange}
+                        min="0"
+                        disabled={submitting || readOnly}
+                        readOnly={readOnly}
+                        className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-right disabled:opacity-50 bg-gray-50"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Karate Fee Section */}
+              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Karate Fee (Rs.)</h3>
+                
+                <div className="space-y-3">
+                  {[
+                    { key: 'karateFeeTotal', label: 'Total' },
+                    { key: 'karateFeeCurrentPaid', label: 'Current Paid' },
+                    { key: 'karateFeeBalanced', label: 'Balanced', readOnly: true }
+                  ].map(({ key, label, readOnly }) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <label className="text-sm text-gray-600">{label}:</label>
+                      <input
+                        type="number"
+                        name={`fee.${key}`}
+                        value={formData.fee[key]}
+                        onChange={handleChange}
+                        min="0"
+                        disabled={submitting || readOnly}
+                        readOnly={readOnly}
+                        className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-right disabled:opacity-50 bg-gray-50"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Admission Fee Section */}
+              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Admission Fee (Rs.)</h3>
+                
+                <div className="space-y-3">
+                  {[
+                    { key: 'admissionFeeTotal', label: 'Total' },
+                    { key: 'admissionFeeCurrentPaid', label: 'Current Paid' },
+                    { key: 'admissionFeeBalanced', label: 'Balanced', readOnly: true }
+                  ].map(({ key, label, readOnly }) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <label className="text-sm text-gray-600">{label}:</label>
+                      <input
+                        type="number"
+                        name={`fee.${key}`}
+                        value={formData.fee[key]}
+                        onChange={handleChange}
+                        min="0"
+                        disabled={submitting || readOnly}
+                        readOnly={readOnly}
+                        className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-right disabled:opacity-50 bg-gray-50"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Annual Charges Section */}
+              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Annual Charges (Rs.)</h3>
+                
+                <div className="space-y-3">
+                  {[
+                    { key: 'annualChargesTotal', label: 'Total' },
+                    { key: 'annualChargesPaid', label: 'Paid' },
+                    { key: 'annualChargesBalanced', label: 'Balanced', readOnly: true }
+                  ].map(({ key, label, readOnly }) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <label className="text-sm text-gray-600">{label}:</label>
+                      <input
+                        type="number"
+                        name={`fee.${key}`}
+                        value={formData.fee[key]}
+                        onChange={handleChange}
+                        min="0"
+                        disabled={submitting || readOnly}
+                        readOnly={readOnly}
+                        className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-right disabled:opacity-50 bg-gray-50"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

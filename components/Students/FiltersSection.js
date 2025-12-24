@@ -8,6 +8,8 @@ export default function FiltersSection({
   setSearchTerm,
   studentStatusFilter,
   setStudentStatusFilter,
+  studentSessionFilter,
+  setStudentSessionFilter,
   sections = [],
   selectedSection = "all",
   setSelectedSection,
@@ -94,6 +96,27 @@ export default function FiltersSection({
           </div>
         </div>
 
+        {/* Fee Session Filter */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Session
+          </label>
+          <div className="relative">
+            <select
+              value={studentSessionFilter}
+              onChange={(e) => setStudentSessionFilter(e.target.value)}
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
+            >
+              <option value="all">All Sessions</option>
+              <option value="2023-2024">2023-2024</option>
+              <option value="2024-2025">2024-2025</option>
+            </select>
+            <div className="absolute right-3 top-3 pointer-events-none">
+              <Filter className="text-gray-400" size={20} />
+            </div>
+          </div>
+        </div>
+
         {/* Fee Status Filter */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -115,7 +138,7 @@ export default function FiltersSection({
         </div>
 
         {/* Search Bar - Full Width */}
-        <div className="w-[400px] mt-4 md:mt-0 md:col-span-2 lg:col-span-4">
+        <div className="">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Search Students
           </label>

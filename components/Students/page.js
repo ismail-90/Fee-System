@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { Download, Loader2, PlusCircle, Trash2 } from "lucide-react";
+import { CheckCircle, Download, FileText, Loader2, PlusCircle, Trash2 } from "lucide-react";
 import { getStudentsByClassAPI } from "@/Services/feeService";
 import AppLayout from "../../components/AppLayout";
 import StatsCards from "./StatsCards";
@@ -13,6 +13,7 @@ import FeeSlipModal from "./FeeSlipModal";
 import CreateStudentModal from "./CreateStudentModal";
 import { createStudentAPI, deleteMultipleStudentsAPI } from "@/Services/studentService";
 import BulkDeleteModal from "./BulkDeleteModal";
+import BulkInvoiceModal from "./BulkInvoiceModal";
 
 export default function StudentsPage() {
   const [selectedStudents, setSelectedStudents] = useState([]);
@@ -28,18 +29,26 @@ export default function StudentsPage() {
   const [selectedSection, setSelectedSection] = useState("all");
   const [feeMonths, setFeeMonths] = useState([]);
   const [selectedFeeMonth, setSelectedFeeMonth] = useState("all");
-  
+  const [isBulkInvoiceModalOpen, setIsBulkInvoiceModalOpen] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [pageLoading, setPageLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [studentSessionFilter, setStudentSessionFilter] = useState("all");
   const [studentStatusFilter, setStudentStatusFilter] = useState("active");
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const itemsPerPage = 8;
   const [isFeeSlipModalOpen, setIsFeeSlipModalOpen] = useState(false);
   const [selectedStudentForSlip, setSelectedStudentForSlip] = useState(null);
+  const selectedStudentObjects = students.filter(student =>
+    selectedStudents.includes(student.studentId)
+  );
 
+  const allInactive =
+    selectedStudentObjects.length > 0 &&
+    selectedStudentObjects.every(student => student.status === "inactive");
   // 🔐 AUTH GUARD
   useEffect(() => {
     if (loading) return;
@@ -73,21 +82,21 @@ export default function StudentsPage() {
         } else if (res.data && Array.isArray(res.data)) {
           setStudents(res.data);
           setFilteredStudents(res.data);
-          
+
           // Extract unique sections from students
           const uniqueSections = [...new Set(res.data
             .map(student => student.section)
             .filter(section => section && section.trim() !== '')
           )];
           setSections(uniqueSections);
-          
+
           // Extract unique fee months from students
           const uniqueFeeMonths = [...new Set(res.data
             .map(student => student.feeMonth)
             .filter(month => month && month.trim() !== '')
           )];
           setFeeMonths(uniqueFeeMonths);
-          
+
         } else {
           console.warn("Unexpected API response:", res);
           setStudents([]);
@@ -112,25 +121,25 @@ export default function StudentsPage() {
   const handleCreateStudent = async (studentData) => {
     try {
       console.log("Creating student with data:", studentData);
-      
+
       const response = await createStudentAPI(studentData);
-      
+
       if (response.success) {
         alert("Student created successfully!");
-        
+
         // Refresh students list
         const res = await getStudentsByClassAPI(selectedClass);
         if (res.data && Array.isArray(res.data)) {
           setStudents(res.data);
           setFilteredStudents(res.data);
-          
+
           // Update sections and months
           const uniqueSections = [...new Set(res.data
             .map(student => student.section)
             .filter(section => section && section.trim() !== '')
           )];
           setSections(uniqueSections);
-          
+
           const uniqueFeeMonths = [...new Set(res.data
             .map(student => student.feeMonth)
             .filter(month => month && month.trim() !== '')
@@ -149,7 +158,7 @@ export default function StudentsPage() {
   // Apply filters - اب sections aur fee month bhi include karein
   useEffect(() => {
     let result = students;
-    
+
     // Apply search filter
     if (searchTerm) {
       result = result.filter(student =>
@@ -171,7 +180,13 @@ export default function StudentsPage() {
       result = result.filter(student => student.feeMonth === selectedFeeMonth);
     }
 
+    // Apply student session filter
+    if (studentSessionFilter !== "all") {
+      result = result.filter(student => student.session === studentSessionFilter);
+    }
+
     // Apply student status filter
+
     if (studentStatusFilter === "active") {
       result = result.filter(student => student.status === "active");
     } else if (studentStatusFilter === "inactive") {
@@ -180,7 +195,7 @@ export default function StudentsPage() {
 
     setFilteredStudents(result);
     setCurrentPage(1);
-  }, [students, searchTerm, selectedSection, selectedFeeMonth, studentStatusFilter]);
+  }, [students, searchTerm, selectedSection, selectedFeeMonth, studentStatusFilter, studentSessionFilter]);
 
   const handleBulkDelete = async () => {
     if (selectedStudents.length === 0) {
@@ -192,15 +207,15 @@ export default function StudentsPage() {
     try {
       const response = await deleteMultipleStudentsAPI(selectedStudents);
       console.log("Delete API Response:", response);
-      
-      setStudents(prevStudents => 
+
+      setStudents(prevStudents =>
         prevStudents.filter(student => !selectedStudents.includes(student._id))
       );
-      
-      setFilteredStudents(prevFiltered => 
+
+      setFilteredStudents(prevFiltered =>
         prevFiltered.filter(student => !selectedStudents.includes(student._id))
       );
-      
+
       // Update sections after deletion
       const updatedStudents = students.filter(student => !selectedStudents.includes(student._id));
       const uniqueSections = [...new Set(updatedStudents
@@ -208,14 +223,14 @@ export default function StudentsPage() {
         .filter(section => section && section.trim() !== '')
       )];
       setSections(uniqueSections);
-      
+
       setSelectedStudents([]);
       setIsDeleteModalOpen(false);
       alert(`${selectedStudents.length} student(s) InActive successfully!`);
-      
+
     } catch (error) {
       console.error("Error deleting students:", error);
-      
+
       if (error.response?.data?.message) {
         alert(`Failed: ${error.response.data.message}`);
       } else if (error.message.includes("Network Error")) {
@@ -223,7 +238,7 @@ export default function StudentsPage() {
       } else {
         alert("Failed to InActive students. Please try again.");
       }
-      
+
     } finally {
       setDeleting(false);
     }
@@ -236,12 +251,12 @@ export default function StudentsPage() {
     }
 
     const currentPageIds = paginatedStudents.map(student => student.studentId);
-    const allSelected = currentPageIds.every(id => 
+    const allSelected = currentPageIds.every(id =>
       selectedStudents.includes(id)
     );
-    
+
     if (allSelected) {
-      setSelectedStudents(prev => 
+      setSelectedStudents(prev =>
         prev.filter(id => !currentPageIds.includes(id))
       );
     } else {
@@ -305,6 +320,7 @@ export default function StudentsPage() {
             </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-3">
+                {/* Create Student Button */}
                 <button
                   onClick={() => setIsCreateModalOpen(true)}
                   className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
@@ -312,23 +328,47 @@ export default function StudentsPage() {
                   <PlusCircle size={18} />
                   Create Student
                 </button>
+
+                {/* Bulk Invoice Button (Only show when students are selected) */}
                 {selectedStudents.length > 0 && (
                   <button
-                    onClick={() => setIsDeleteModalOpen(true)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                    onClick={() => setIsBulkInvoiceModalOpen(true)}
+                    className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
                   >
-                    <Trash2 size={18} />
-                    InActive ({selectedStudents.length})
+                    <FileText size={18} />
+                    Bulk Invoice ({selectedStudents.length})
                   </button>
                 )}
-                <button
-                  onClick={handleExportData}
-                  className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-                >
-                  <Download size={18} />
-                  Export Data
-                </button>
+
+                {/* Delete/Active-Inactive Button */}
+                {selectedStudents.length > 0 && (() => {
+                  const selectedStudentObjects = students.filter(student =>
+                    selectedStudents.includes(student.studentId)
+                  );
+                  const allInactive = selectedStudentObjects.every(
+                    student => student.status === "inactive"
+                  );
+
+                  return (
+                    <button
+                      onClick={() => setIsDeleteModalOpen(true)}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg
+          ${allInactive
+                          ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                          : "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
+                        }`}
+                    >
+                      {allInactive ? <CheckCircle size={18} /> : <Trash2 size={18} />}
+                      {allInactive
+                        ? `Active (${selectedStudents.length})`
+                        : `InActive (${selectedStudents.length})`}
+                    </button>
+                  );
+                })()}
+
+              
               </div>
+
             </div>
           </div>
 
@@ -344,6 +384,8 @@ export default function StudentsPage() {
           setSearchTerm={setSearchTerm}
           studentStatusFilter={studentStatusFilter}
           setStudentStatusFilter={setStudentStatusFilter}
+          studentSessionFilter={studentSessionFilter}
+          setStudentSessionFilter={setStudentSessionFilter}
           sections={sections}
           selectedSection={selectedSection}
           setSelectedSection={setSelectedSection}
@@ -351,13 +393,21 @@ export default function StudentsPage() {
           selectedFeeMonth={selectedFeeMonth}
           setSelectedFeeMonth={setSelectedFeeMonth}
         />
-        
+
         <BulkDeleteModal
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
           selectedCount={selectedStudents.length}
           onConfirm={handleBulkDelete}
           deleting={deleting}
+          actionType={allInactive ? "activate" : "inactivate"} // ✅ ALWAYS CORRECT
+        />
+
+        <BulkInvoiceModal
+          isOpen={isBulkInvoiceModalOpen}
+          onClose={() => setIsBulkInvoiceModalOpen(false)}
+          selectedStudents={selectedStudents}
+          students={students}
         />
 
         <StudentTable

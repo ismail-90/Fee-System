@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import DashboardCards from '@/components/DashboardCards';
-import { dummyData } from '@/utils/dummyData';
 import AppLayout from '../../components/AppLayout';
 import { Loader2 } from 'lucide-react';
 
@@ -46,7 +45,7 @@ export default function AccountantDashboard() {
             </p>
           </div>
 
-          <DashboardCards data={dummyData.dashboard} />
+          <DashboardCards />
  
 
         </div>

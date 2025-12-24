@@ -11,9 +11,7 @@ import {
   Loader2,
   FileText,
   Calendar,
-  User,
-  DollarSign,
-  Download
+  User
 } from "lucide-react";
 import { getInvoicesByStatusAPI, payInvoiceAPI } from "@/Services/invoiceService";
 import AppLayout from "../AppLayout";
@@ -24,14 +22,14 @@ export default function InvoicesDetails() {
 
   const [invoices, setInvoices] = useState([]);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
-  const [activeTab, setActiveTab] = useState("unpaid"); // unpaid or paid
+  const [activeTab, setActiveTab] = useState("unpaid");
   const [searchTerm, setSearchTerm] = useState("");
   const [loadingInvoices, setLoadingInvoices] = useState(true);
-  
+
   // Payment modal
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState({});
   const [processingPayment, setProcessingPayment] = useState(false);
 
   // 🔐 AUTH GUARD
@@ -73,36 +71,51 @@ export default function InvoicesDetails() {
 
   const handlePayInvoice = (invoice) => {
     setSelectedInvoice(invoice);
-    setPaymentAmount(invoice.feeId?.allTotal?.toString() || "");
+
+    setPaymentAmount({
+      total: invoice.totalFee || 0,
+      tutionFee: invoice.feeId?.tutionFee || 0,
+      examFee: invoice.feeId?.examFee || 0,
+      labFee: invoice.feeId?.labFee || 0,
+      karateFee: invoice.feeId?.karateFee || 0,
+      lateFeeFine: invoice.feeId?.lateFeeFine || 0,
+    });
+
     setShowPaymentModal(true);
   };
 
   const handleSubmitPayment = async () => {
-    if (!paymentAmount || isNaN(paymentAmount) || parseFloat(paymentAmount) <= 0) {
-      alert("Please enter a valid payment amount");
+    if (!selectedInvoice) return;
+
+    const totalAmount = Number(paymentAmount.total || 0);
+
+    if (totalAmount <= 0) {
+      alert("Please enter a valid total amount");
       return;
     }
 
-    if (!selectedInvoice) return;
-
     setProcessingPayment(true);
+
     try {
       const paymentData = {
         invoiceId: selectedInvoice.invoiceId,
-        amount: parseFloat(paymentAmount)
+        amount: totalAmount, // user-entered total
+        paymentBreakdown: { ...paymentAmount } // individual fees
       };
 
       const response = await payInvoiceAPI(paymentData);
-      
+
       if (response.success) {
         alert("✅ Payment successful!");
         setShowPaymentModal(false);
+        setPaymentAmount({});
+        setSelectedInvoice(null);
         fetchInvoices();
       } else {
-        alert("Payment failed: " + (response.message || "Unknown error"));
+        alert(response.message || "Payment failed");
       }
     } catch (err) {
-      alert("Error: " + (err.response?.data?.message || "Payment failed"));
+      alert(err.response?.data?.message || "Payment failed");
     } finally {
       setProcessingPayment(false);
     }
@@ -122,7 +135,6 @@ export default function InvoicesDetails() {
     }
   };
 
-  // 🔄 Loader while auth loads
   if (loading) {
     return (
       <div className="min-h-screen flex justify-center items-center">
@@ -134,20 +146,19 @@ export default function InvoicesDetails() {
   return (
     <AppLayout>
       <div className="p-6 bg-gray-50 min-h-screen">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Invoices</h1>
           <p className="text-gray-600">Manage and process student invoices</p>
         </div>
 
-        {/* Tabs for Paid/Unpaid */}
+        {/* Tabs */}
         <div className="mb-6">
           <div className="flex space-x-2 border-b border-gray-200">
             <button
               onClick={() => setActiveTab("unpaid")}
               className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-all ${activeTab === "unpaid"
-                  ? "bg-white border-t border-l border-r border-gray-200 text-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
+                ? "bg-white border-t border-l border-r border-gray-200 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
                 }`}
             >
               <div className="flex items-center gap-2">
@@ -156,15 +167,15 @@ export default function InvoicesDetails() {
                 {invoices.filter(inv => inv.paymentStatus === "unPaid").length > 0 && (
                   <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full">
                     {invoices.filter(inv => inv.paymentStatus === "unPaid").length}
-                  </span> 
+                  </span>
                 )}
               </div>
             </button>
             <button
               onClick={() => setActiveTab("paid")}
               className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-all ${activeTab === "paid"
-                  ? "bg-white border-t border-l border-r border-gray-200 text-green-600"
-                  : "text-gray-500 hover:text-gray-700"
+                ? "bg-white border-t border-l border-r border-gray-200 text-green-600"
+                : "text-gray-500 hover:text-gray-700"
                 }`}
             >
               <div className="flex items-center gap-2">
@@ -175,7 +186,7 @@ export default function InvoicesDetails() {
           </div>
         </div>
 
-        {/* Search Bar */}
+        {/* Search */}
         <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -200,8 +211,8 @@ export default function InvoicesDetails() {
               <FileText className="h-14 w-14 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-lg">No {activeTab} invoices found</p>
               <p className="text-gray-400 mt-1">
-                {activeTab === "unpaid" 
-                  ? "All invoices are paid" 
+                {activeTab === "unpaid"
+                  ? "All invoices are paid"
                   : "No paid invoices available"}
               </p>
             </div>
@@ -213,24 +224,18 @@ export default function InvoicesDetails() {
                     <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Invoice</th>
                     <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Student</th>
                     <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Fee</th>
-                   
-                 {activeTab === "paid" && (
-      <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase">
-        Paid Amount
-      </th>
-    )}
-
-    {activeTab === "paid" && (
-      <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase">
-        Remaining Balance
-      </th>
-    )}
+                    {activeTab === "paid" && (
+                      <>
+                        <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Paid Amount</th>
+                        <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Remaining Balance</th>
+                      </>
+                    )}
                     {activeTab === "unpaid" && (
-                    <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
                     )}
                     <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                     {activeTab === "unpaid" && (
-                    <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                     )}
                   </tr>
                 </thead>
@@ -248,7 +253,7 @@ export default function InvoicesDetails() {
                         </div>
                       </td>
 
-                      {/* Student Info */}
+                      {/* Student */}
                       <td className="p-4">
                         <div className="flex items-center gap-2">
                           <User className="text-gray-400" size={16} />
@@ -261,74 +266,37 @@ export default function InvoicesDetails() {
 
                       {/* Amount */}
                       <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-gray-900">
-                            Rs. {invoice.totalFee?.toLocaleString()}
-                          </span>
-                        </div>
+                        <div className="font-bold text-gray-900">Rs. {invoice.totalFee?.toLocaleString()}</div>
                       </td>
 
-                      {/* Paid Amount */}
+                      {/* Paid Amount & Remaining */}
                       {activeTab === "paid" && (
-                       <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-green-500">
-                            Rs. {invoice.paidAmount?.toLocaleString()}
-                          </span>
-                        </div>
-                      </td>
-
+                        <>
+                          <td className="p-4 text-green-500 font-bold">Rs. {invoice.paidAmount?.toLocaleString()}</td>
+                          <td className="p-4 text-red-500 font-bold">Rs. {invoice.remainingBalance?.toLocaleString()}</td>
+                        </>
                       )}
-                      {/* Remaining Balance */}
-                      {activeTab === "paid" && (
-                       
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-red-500">
-                            Rs. {invoice.remainingBalance?.toLocaleString()}
-                          </span>
-                        </div>
-                      </td>
-                      )}
-                    
 
                       {/* Date */}
                       {activeTab === "unpaid" && (
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
+                        <td className="p-4 flex items-center gap-2">
                           <Calendar className="text-gray-400" size={16} />
                           <span className="text-sm text-gray-600">{formatDate(invoice.createdAt)}</span>
-                        </div>
-                      </td>
+                        </td>
                       )}
 
                       {/* Status */}
                       <td className="p-4">
-                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                          invoice.paymentStatus === "paid" 
-                            ? "bg-green-100 text-green-800" 
-                            : "bg-red-100 text-red-800"
-                        }`}>
-                          {invoice.paymentStatus === "paid" ? (
-
-                            <>
-                              {invoice.paymentType}
-                            </>
-
-                          ) : (
-                            <>
-                              <XCircle className="mr-1" size={12} />
-                              Unpaid
-                            </>
-                          )}
+                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${invoice.paymentStatus === "paid" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                          {invoice.paymentStatus === "paid" ? invoice.paymentType : <>
+                            <XCircle className="mr-1" size={12} /> Unpaid
+                          </>}
                         </div>
                       </td>
 
                       {/* Actions */}
                       {activeTab === "unpaid" && (
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-
+                        <td className="p-4 flex items-center gap-2">
                           <button
                             onClick={() => downloadInvoice(invoice.invoiceUrl)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -336,18 +304,15 @@ export default function InvoicesDetails() {
                           >
                             <Eye size={16} />
                           </button>
-                          
                           {invoice.paymentStatus === "unPaid" && (
                             <button
                               onClick={() => handlePayInvoice(invoice)}
                               className="p-2 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1 text-xs font-medium px-3 py-2"
                             >
-                              <CreditCard size={14} />
-                              Pay
+                              <CreditCard size={14} /> Pay
                             </button>
                           )}
-                        </div>
-                      </td>
+                        </td>
                       )}
                     </tr>
                   ))}
@@ -357,114 +322,116 @@ export default function InvoicesDetails() {
           )}
         </div>
 
-        {/* Simple Payment Modal */}
+        {/* Payment Modal */}
         {showPaymentModal && selectedInvoice && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl w-full max-w-sm">
-              {/* Modal Header */}
-              <div className="border-b border-gray-200 p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <CreditCard className="text-green-600" size={20} />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-800">Pay Invoice</h3>
-                      <p className="text-sm text-gray-500">Complete payment</p>
-                    </div>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl">
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-100 rounded-xl">
+                    <CreditCard className="text-green-600" size={22} />
                   </div>
-                  <button
-                    onClick={() => setShowPaymentModal(false)}
-                    className="p-1 hover:bg-gray-100 rounded"
-                    disabled={processingPayment}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-
-              {/* Modal Body */}
-              <div className="p-5">
-                <div className="space-y-4">
-                  {/* Invoice Info */}
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Invoice:</span>
-                        <span className="font-medium">{selectedInvoice.invoiceNumber}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Student:</span>
-                        <span className="font-medium">{selectedInvoice.studentName}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Total Due:</span>
-                        <span className="font-bold text-gray-900">
-                          Rs. {selectedInvoice.totalFee}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Payment Form */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Invoice ID</label>
-                      <input
-                        type="text"
-                        value={selectedInvoice.invoiceId}
-                        readOnly
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm text-gray-600"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Amount (Rs.)</label>
-                      <input
-                        type="number"
-                        value={paymentAmount}
-                        onChange={(e) => setPaymentAmount(e.target.value)}
-                        placeholder="Enter amount"
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        min="0"
-                        max={selectedInvoice.feeId?.allTotal}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Max: Rs. {selectedInvoice.feeId?.allTotal?.toLocaleString()}</p>
-                    </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">Invoice Payment</h3>
+                    <p className="text-xs text-gray-500">Enter payment details</p>
                   </div>
                 </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="border-t border-gray-200 p-5 flex justify-end gap-2">
                 <button
                   onClick={() => setShowPaymentModal(false)}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                  disabled={processingPayment}
+                >✕</button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 space-y-6">
+                {/* Invoice ID */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Invoice ID</label>
+                  <input
+                    value={selectedInvoice.invoiceId}
+                    readOnly
+                    className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-600"
+                  />
+                </div>
+
+                {/* Total Amount (user input) */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Total Amount</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rs</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={paymentAmount.total || ""}
+                      onChange={(e) => setPaymentAmount(prev => ({ ...prev, total: Number(e.target.value) }))}
+                      className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Individual Fees (optional) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    { key: "tutionFee", label: "Tuition Fee" },
+                    { key: "examFee", label: "Exam Fee" },
+                    { key: "labFee", label: "Lab Fee" },
+                    { key: "karateFee", label: "Karate Fee" },
+                    { key: "lateFeeFine", label: "Late Fee Fine" },
+                  ].map(({ key, label }) => (
+                    <div key={key} className="relative">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rs</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={paymentAmount[key] || selectedInvoice.feeId?.[key] || 0}
+                          onChange={(e) =>
+                            setPaymentAmount(prev => ({ ...prev, [key]: Number(e.target.value) }))
+                          }
+                          className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end gap-3 px-6 py-4 border-t">
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="px-5 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
                   disabled={processingPayment}
                 >
                   Cancel
                 </button>
+
                 <button
                   onClick={handleSubmitPayment}
                   disabled={processingPayment}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center gap-2 disabled:opacity-50"
                 >
                   {processingPayment ? (
                     <>
-                      <Loader2 className="animate-spin" size={14} />
+                      <Loader2 className="animate-spin" size={16} />
                       Processing...
                     </>
                   ) : (
                     <>
-                      <CreditCard size={14} />
-                      Pay Now
+                      <CreditCard size={16} /> Pay Now
                     </>
                   )}
                 </button>
               </div>
+
             </div>
           </div>
         )}
+
       </div>
     </AppLayout>
   );

@@ -68,7 +68,6 @@ export default function StudentTable({
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Total Fee</th>
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Paid</th>
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Balance</th>
-              <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Status</th>
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -157,28 +156,7 @@ export default function StudentTable({
                     </div>
                   </td>
                   
-                  {/* Status Column */}
-                  <td className="p-4">
-                    <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${student.curBalance > 0
-                        ? 'bg-red-50 text-red-700 border border-red-200'
-                        : 'bg-green-50 text-green-700 border border-green-200'
-                      }`}>
-                      {student.curBalance > 0 ? (
-                        <>
-                          <XCircle className="mr-1.5" size={12} />
-                          Defaulter
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="mr-1.5" size={12} />
-                          Paid
-                        </>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-2">
-                      {student.feeMonth || 'N/A'}
-                    </div>
-                  </td>
+                
                   
                   {/* Actions Column */}
                   <td className="p-4">

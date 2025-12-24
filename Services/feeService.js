@@ -1,6 +1,6 @@
 import api from "./api";
 
-// Upload Fee CSV
+// Upload Fee CSV File
 export const uploadFeeCSVAPI = async (formData) => {
   try { 
     for (let [key, value] of formData.entries()) {
@@ -28,7 +28,7 @@ export const uploadFeeCSVAPI = async (formData) => {
   }
 };
 
-// Get Students by Class
+// Get Students by Class Api
 export const getStudentsByClassAPI = async (className) => {
   const response = await api.get(`/global/students/${className}`);
   return response.data;

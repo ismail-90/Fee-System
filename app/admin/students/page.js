@@ -21,9 +21,9 @@ import AppLayout from "../../../components/AppLayout";
 import { getStudentsByCampusAPI } from "../../../Services/studentService";
 import { getCampusesAPI } from "../../../Services/campusService";
 import StudentTable from "../../../components/Students/StudentTable";
-import StudentDetailModal from "../../../components/students/StudentDetailModal";
 import FeeSlipModal from "../../../components/Students/FeeSlipModal";
 import { deleteMultipleStudentsAPI } from "../../../Services/studentService";
+import StudentDetailModal from "../../../components/Students/StudentDetailModal";
 
 
 export default function AdminStudents() {

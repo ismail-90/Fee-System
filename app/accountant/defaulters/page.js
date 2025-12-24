@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { getDefaulterStudentsAPI } from '@/Services/studentService';
-import AppLayout from '@/components/AppLayout';
+import { getDefaulterStudentsAPI } from '../../../Services/studentService';
+import AppLayout from '../../../components/AppLayout';
 
 export default function DefaultersPage() {
   const [defaulterStudents, setDefaulterStudents] = useState([]);

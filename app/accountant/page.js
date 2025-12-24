@@ -1,8 +1,8 @@
 'use client';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import DashboardCards from '@/components/DashboardCards';
+import { useAuth } from '../../context/AuthContext';
+import DashboardCards from '../../components/DashboardCards';
 import AppLayout from '../../components/AppLayout';
 import { Loader2 } from 'lucide-react';
 

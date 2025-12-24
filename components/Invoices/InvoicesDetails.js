@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -13,7 +13,7 @@ import {
   Calendar,
   User
 } from "lucide-react";
-import { getInvoicesByStatusAPI, payInvoiceAPI } from "@/Services/invoiceService";
+import { getInvoicesByStatusAPI, payInvoiceAPI } from "../../Services/invoiceService";
 import AppLayout from "../AppLayout";
 
 export default function InvoicesDetails() {

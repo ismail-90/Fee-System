@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { X, PlusCircle, User, Loader2 } from "lucide-react";
 import { getCampusesAPI } from "../../Services/campusService";
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import toast from "react-hot-toast";
 
 export default function CreateStudentModal({ isOpen, onClose, onCreateStudent }) {

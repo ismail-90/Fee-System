@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { addExpenseAPI } from "@/Services/feeService";
-import api from "@/Services/api";
+import { addExpenseAPI } from "../../../Services/feeService";
+import api from "../../../Services/api";
 import AppLayout from "../../../components/AppLayout";
 
 export default function ExpensesPage() {

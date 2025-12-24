@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '../../../context/AuthContext';
 import { useRouter } from 'next/navigation';
 import {
   Building,
@@ -26,8 +26,8 @@ import {
   deleteCampusAPI,
   updateAccountantAPI,
   deleteAccountantAPI
-} from "@/Services/campusService";
-import AppLayout from '@/components/AppLayout';
+} from "../../../Services/campusService";
+import AppLayout from '../../../components/AppLayout';
 
 export default function Campuses() {
   const { user, loading: authLoading } = useAuth();

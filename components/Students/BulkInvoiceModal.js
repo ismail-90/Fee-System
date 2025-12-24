@@ -10,7 +10,7 @@ import {
   AlertCircle,
   Users
 } from "lucide-react";
-import { generateBulkInvoicesAPI } from "@/Services/invoiceService";
+import { generateBulkInvoicesAPI } from "../../Services/feeService";
 
 export default function BulkInvoiceModal({ 
   isOpen, 

@@ -11,7 +11,7 @@ import {
   Share2,
   Mail as MailIcon
 } from "lucide-react";
-import { generateFeeReceiptAPI } from "@/Services/feeService";
+import { generateFeeReceiptAPI } from "../../Services/feeService";
 
 export default function FeeSlipModal({ isOpen, onClose, student }) {
   // State declarations must come BEFORE any conditional returns

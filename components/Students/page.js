@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
-import { CheckCircle, Download, FileText, Loader2, PlusCircle, Trash2 } from "lucide-react";
-import { getStudentsByClassAPI } from "@/Services/feeService";
+import { CheckCircle, FileText, Loader2, PlusCircle, Trash2 } from "lucide-react";
+import { getStudentsByClassAPI } from "../../Services/studentService";
 import AppLayout from "../../components/AppLayout";
 import StatsCards from "./StatsCards";
 import FiltersSection from "./FiltersSection";
@@ -11,7 +11,7 @@ import StudentTable from "./StudentTable";
 import StudentDetailModal from "./StudentDetailModal";
 import FeeSlipModal from "./FeeSlipModal";
 import CreateStudentModal from "./CreateStudentModal";
-import { createStudentAPI, deleteMultipleStudentsAPI } from "@/Services/studentService";
+import { createStudentAPI, deleteMultipleStudentsAPI } from "../../Services/studentService";
 import BulkDeleteModal from "./BulkDeleteModal";
 import BulkInvoiceModal from "./BulkInvoiceModal";
 

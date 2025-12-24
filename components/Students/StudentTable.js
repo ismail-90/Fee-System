@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { User, CheckCircle, XCircle, ChevronLeft, ChevronRight, Loader2, Eye, FileText } from "lucide-react";
+import { User, Loader2, Eye, FileText } from "lucide-react";
 import Pagination from "./Pagination";
 
 export default function StudentTable({
@@ -11,8 +10,6 @@ export default function StudentTable({
   itemsPerPage,
   setCurrentPage,
   handleViewDetails,
-  handleEditStudent,
-  handleExportData,
   handleGenerateFeeSlip,
   selectedStudents = [],
   onSelectStudent,

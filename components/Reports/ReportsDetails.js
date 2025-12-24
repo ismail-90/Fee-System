@@ -8,9 +8,8 @@ export default function ReportsDetails() {
   const [expense, setExpense] = useState(null);
   const [fee, setFee] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("expense"); // expense | fee
+  const [activeTab, setActiveTab] = useState("expense"); 
   
-  // ریفرینس بنائیں پرنٹ کرنے والے عنصر کے لیے
   const contentRef = useRef(null);
 
   useEffect(() => {
@@ -33,13 +32,10 @@ export default function ReportsDetails() {
   const handlePrint = () => {
     if (!contentRef.current) return;
     
-    // اصلی صفحے کی HTML محفوظ کریں
     const originalContents = document.body.innerHTML;
     
-    // صرف مطلوبہ حصے کی HTML لیں
     const printContents = contentRef.current.innerHTML;
     
-    // پرنٹ لیے نئے HTML ڈاکیومنٹ بنائیں
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     
     printWindow.document.write(`
@@ -138,12 +134,12 @@ export default function ReportsDetails() {
           </div>
         </div>
 
-        {/* CONTENT - یہی حصہ پرنٹ ہوگا */}
+        
         <div 
           ref={contentRef} 
           className="bg-white p-6 rounded-lg shadow space-y-6"
         >
-          {/* EXPENSE TAB */}
+       
           {activeTab === "expense" && expense && (
             <>
               <h2 className="text-xl font-semibold print:hidden">

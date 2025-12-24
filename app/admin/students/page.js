@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "../../../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { 
   Download, 
@@ -20,10 +20,10 @@ import {
 import AppLayout from "../../../components/AppLayout";
 import { getStudentsByCampusAPI } from "../../../Services/studentService";
 import { getCampusesAPI } from "../../../Services/campusService";
-import StudentTable from "@/components/students/StudentTable";
-import StudentDetailModal from "@/components/students/StudentDetailModal";
-import FeeSlipModal from "@/components/students/FeeSlipModal";
-import { deleteMultipleStudentsAPI } from "@/Services/studentService";
+import StudentTable from "../../../components/Students/StudentTable";
+import StudentDetailModal from "../../../components/students/StudentDetailModal";
+import FeeSlipModal from "../../../components/Students/FeeSlipModal";
+import { deleteMultipleStudentsAPI } from "../../../Services/studentService";
 
 
 export default function AdminStudents() {

@@ -1,8 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import AppLayout from "../../../components/AppLayout";
-import { getInvoicesByCampusAPI } from "@/Services/invoiceService";
-import { getCampusesAPI } from "@/Services/campusService";
+import { getInvoicesByCampusAPI } from "../../../Services/invoiceService";
+import { getCampusesAPI } from "../../../Services/campusService";
 
 export default function Invoices() {
   const [campuses, setCampuses] = useState([]);

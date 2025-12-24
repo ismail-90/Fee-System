@@ -12,12 +12,12 @@ import {
   FileText,
   UserCheck
 } from 'lucide-react';
-import { useState, useRef, useEffect, use } from 'react';
-import { uploadFeeCSVAPI } from '@/Services/feeService';
-import { getCampusesAPI } from '@/Services/campusService';
-import { getProfileAPI } from '@/Services/authService';
-import { useAuth } from '@/context/AuthContext';
-import { getDashboardStatsAPI } from '@/Services/dashboardService';
+import { useState, useRef, useEffect} from 'react';
+import { uploadFeeCSVAPI } from '../Services/feeService';
+import { getCampusesAPI } from '../Services/campusService';
+import { getProfileAPI } from '../Services/authService';
+import { useAuth } from '../context/AuthContext';
+import { getDashboardStatsAPI } from '../Services/dashboardService';
 
 const Card = ({ title, value, icon: Icon, color, onClick, isUploadCard = false }) => {
   const cardContent = (

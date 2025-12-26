@@ -9,31 +9,61 @@ import {
   Loader2,
   Printer,
   Share2,
-  Mail as MailIcon
+  Mail as MailIcon,
+  Edit2,
+  Trash2
 } from "lucide-react";
 import { generateFeeReceiptAPI } from "../../Services/feeService";
 
 export default function FeeSlipModal({ isOpen, onClose, student }) {
-  // State declarations must come BEFORE any conditional returns
+  // State declarations
   const [feeMonth, setFeeMonth] = useState("");
   const [generatingSlip, setGeneratingSlip] = useState(false);
   const [slipData, setSlipData] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [feeMonths, setFeeMonths] = useState([
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  
+  // Fee breakdown state
+  const [feeBreakdown, setFeeBreakdown] = useState({
+    tuitionFee: 0,
+    booksCharges: 0,
+    registrationFee: 0,
+    examFee: 0,
+    labFee: 0,
+    artCraftFee: 0,
+    karateFee: 0,
+    lateFeeFine: 0
+  });
+
+  const feeMonths = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
-  ]);
+  ];
 
-  // Initialize with student's fee month or first month
+  // Initialize with student's fee data
   useEffect(() => {
-    if (student?.feeMonth) {
-      // Try to match the month from student's feeMonth
-      const month = feeMonths.find(m => 
-        m.toLowerCase().includes(student.feeMonth.toLowerCase())
-      );
-      setFeeMonth(month || feeMonths[0]);
-    } else {
-      setFeeMonth(feeMonths[0]);
+    if (student) {
+      // Set fee month
+      if (student?.feeMonth) {
+        const month = feeMonths.find(m => 
+          m.toLowerCase().includes(student.feeMonth.toLowerCase())
+        );
+        setFeeMonth(month || feeMonths[0]);
+      } else {
+        setFeeMonth(feeMonths[0]);
+      }
+
+      // Initialize fee breakdown from student data if available
+      setFeeBreakdown({
+        tuitionFee: student.tutionFee || 0,
+        booksCharges: 0, // Not in student object
+        registrationFee: 0, // Not in student object
+        examFee: student.examFeeTotal || 0,
+        labFee: student.labsFee || 0,
+        artCraftFee: 0, // Not in student object
+        karateFee: student.karateFeeTotal || 0,
+        lateFeeFine: student.lateFeeFine || 0
+      });
     }
   }, [student]);
 
@@ -49,6 +79,38 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     });
   };
 
+  // Calculate total from breakdown
+  const calculateTotal = () => {
+    return Object.values(feeBreakdown).reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
+  };
+
+  // Handle fee breakdown input change
+  const handleBreakdownChange = (field, value) => {
+    const numValue = value === '' ? 0 : parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0) {
+      setFeeBreakdown(prev => ({
+        ...prev,
+        [field]: numValue
+      }));
+    }
+  };
+
+  // Reset breakdown to student's original values
+  const resetBreakdown = () => {
+    if (student) {
+      setFeeBreakdown({
+        tuitionFee: student.tutionFee || 0,
+        booksCharges: 0,
+        registrationFee: 0,
+        examFee: student.examFeeTotal || 0,
+        labFee: student.labsFee || 0,
+        artCraftFee: 0,
+        karateFee: student.karateFeeTotal || 0,
+        lateFeeFine: student.lateFeeFine || 0
+      });
+    }
+  };
+
   // API Functions
   const generateFeeSlip = async () => {
     if (!student || !feeMonth) {
@@ -56,11 +118,19 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
       return;
     }
 
+    // Validate at least one fee is greater than 0
+    const total = calculateTotal();
+    if (total <= 0) {
+      alert("Please enter at least one fee amount greater than 0");
+      return;
+    }
+
     setGeneratingSlip(true);
     try {
       const feeData = {
         studentId: student.studentId,
-        feeMonth: feeMonth.substring(0, 3).toLowerCase()
+        feeMonth: feeMonth.substring(0, 3).toLowerCase(),
+        feeBreakdown: feeBreakdown
       };
 
       const response = await generateFeeReceiptAPI(feeData);
@@ -78,7 +148,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
       setGeneratingSlip(false);
     }
   };
- 
+
   const handleDownloadSlip = async () => {
     if (!slipData) return;
     
@@ -97,7 +167,6 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
       }
     } catch (error) {
       console.error("Download failed:", error);
-      // Fallback to direct URL
       window.open(slipData.downloadUrl || slipData.invoiceUrl, '_blank');
     }
   };
@@ -146,10 +215,12 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
 
   const handleDone = () => {
     setSlipData(null);
+    setShowBreakdown(false);
+    resetBreakdown();
     onClose();
   };
 
-  // Early return AFTER all hooks are called
+  // Early return
   if (!isOpen || !student) return null;
 
   return (
@@ -172,14 +243,14 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
 
         <div className="p-6">
           {/* Student Info Summary */}
-          <div className="mb-8 p-4 bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+          <div className="mb-8 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-600">Student ID</p>
                 <p className="font-medium font-mono">{student.studentId}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Father&apos;s Name</p>
+                <p className="text-sm text-gray-600">Father's Name</p>
                 <p className="font-medium">{student.fatherName}</p>
               </div>
               <div>
@@ -198,7 +269,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
           </div>
 
           {/* Month Selection */}
-          <div className="mb-8">
+          <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Select Fee Month
             </label>
@@ -208,7 +279,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                   key={month}
                   onClick={() => setFeeMonth(month)}
                   className={`px-3 py-2.5 rounded-lg border transition-all ${feeMonth === month
-                      ? 'bg-linear-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-md'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-md'
                       : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
                     }`}
                 >
@@ -219,9 +290,179 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
             </div>
           </div>
 
+          {/* Fee Breakdown Section - Always Visible */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-800">Fee Breakdown</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={resetBreakdown}
+                  className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-1"
+                >
+                  <Trash2 size={14} />
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Column 1 */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tuition Fee
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                    <input
+                      type="number"
+                      value={feeBreakdown.tuitionFee || ''}
+                      onChange={(e) => handleBreakdownChange('tuitionFee', e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Books Charges
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                    <input
+                      type="number"
+                      value={feeBreakdown.booksCharges || ''}
+                      onChange={(e) => handleBreakdownChange('booksCharges', e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Registration Fee
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                    <input
+                      type="number"
+                      value={feeBreakdown.registrationFee || ''}
+                      onChange={(e) => handleBreakdownChange('registrationFee', e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Exam Fee
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                    <input
+                      type="number"
+                      value={feeBreakdown.examFee || ''}
+                      onChange={(e) => handleBreakdownChange('examFee', e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 2 */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Lab Fee
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                    <input
+                      type="number"
+                      value={feeBreakdown.labFee || ''}
+                      onChange={(e) => handleBreakdownChange('labFee', e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Art & Craft Fee
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                    <input
+                      type="number"
+                      value={feeBreakdown.artCraftFee || ''}
+                      onChange={(e) => handleBreakdownChange('artCraftFee', e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Karate Fee
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                    <input
+                      type="number"
+                      value={feeBreakdown.karateFee || ''}
+                      onChange={(e) => handleBreakdownChange('karateFee', e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Late Fee Fine
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                    <input
+                      type="number"
+                      value={feeBreakdown.lateFeeFine || ''}
+                      onChange={(e) => handleBreakdownChange('lateFeeFine', e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Total Preview */}
+            <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-bold text-gray-800">Total Amount:</span>
+                <span className="text-2xl font-bold text-blue-600">
+                  Rs. {calculateTotal().toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Generated Slip Preview */}
           {slipData && (
-            <div className="mb-8 p-5 bg-linear-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+            <div className="mb-8 p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
               <h3 className="font-bold text-green-800 mb-4 flex items-center gap-2">
                 <CheckCircle size={20} />
                 Fee Slip Generated Successfully
@@ -256,7 +497,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                   <div className="mt-4 pt-4 border-t border-green-200">
                     <div className="flex justify-between font-bold">
                       <span>Total Amount:</span>
-                      <span className="text-blue-700">Rs. {slipData.amounts.total || student.allTotal}</span>
+                      <span className="text-blue-700">Rs. {slipData.amounts.total || calculateTotal()}</span>
                     </div>
                     {slipData.amounts.lateFine > 0 && (
                       <div className="flex justify-between text-sm mt-1">
@@ -301,33 +542,9 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
             </div>
           )}
 
-          {/* Fee Details Preview */}
-          <div className="mb-8 p-4 bg-gray-50 rounded-xl">
-            <h3 className="font-medium text-gray-800 mb-3">Fee Details Preview</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Tuition Fee:</span>
-                <span className="font-medium">Rs. {student.tutionFee?.toLocaleString() || '0'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Lab Fee:</span>
-                <span className="font-medium">Rs. {student.labsFee?.toLocaleString() || '0'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Exam Fee:</span>
-                <span className="font-medium">Rs. {student.examFeeTotal?.toLocaleString() || '0'}</span>
-              </div>
-              <div className="h-px bg-gray-300 my-2"></div>
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total Amount:</span>
-                <span className="text-blue-600">Rs. {student.allTotal?.toLocaleString() || '0'}</span>
-              </div>
-            </div>
-          </div>
-
           {/* Copy URL Section */}
           {slipData?.previewUrl && (
-            <div className="mb-8 p-4 bg-linear-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+            <div className="mb-8 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
               <label className="block text-sm font-medium text-indigo-700 mb-2">
                 Share Fee Slip Link
               </label>
@@ -361,14 +578,14 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
               <div className="flex gap-3 mt-3">
                 <button
                   onClick={handleShareSlip}
-                  className="flex-1 px-4 py-2.5 bg-linear-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
                 >
                   <Share2 size={16} />
                   Share
                 </button>
                 <button
                   onClick={handleEmailSlip}
-                  className="flex-1 px-4 py-2.5 bg-linear-to-r from-red-500 to-orange-500 text-white rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
                 >
                   <MailIcon size={16} />
                   Email
@@ -384,12 +601,12 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
             <div className={`w-3 h-3 rounded-full ${generatingSlip ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}></div>
             <p className="text-sm text-gray-600">
               Selected: <span className="font-medium capitalize">{feeMonth}</span>
+              {slipData && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">
+                  ✓ Generated
+                </span>
+              )}
             </p>
-            {slipData && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                ✓ Generated
-              </span>
-            )}
           </div>
           
           <div className="flex gap-3">
@@ -405,7 +622,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
               <button
                 onClick={generateFeeSlip}
                 disabled={generatingSlip}
-                className="px-8 py-2.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
               >
                 {generatingSlip ? (
                   <>
@@ -422,7 +639,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
             ) : (
               <button
                 onClick={handleDone}
-                className="px-8 py-2.5 bg-linear-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all flex items-center gap-2 shadow-md hover:shadow-lg"
+                className="px-8 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all flex items-center gap-2 shadow-md hover:shadow-lg"
               >
                 <CheckCircle size={16} />
                 Done

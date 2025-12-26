@@ -1,5 +1,6 @@
-import { User, Loader2, Eye, FileText } from "lucide-react";
+import { User, Loader2, Eye, FileText, ChevronDown } from "lucide-react";
 import Pagination from "./Pagination";
+import { useState } from "react";
 
 export default function StudentTable({
   pageLoading,
@@ -13,7 +14,8 @@ export default function StudentTable({
   handleGenerateFeeSlip,
   selectedStudents = [],
   onSelectStudent,
-  onSelectAll
+  onSelectAll,
+  onItemsPerPageChange // نیا prop شامل کریں
 }) {
   const calculateTotalPaid = (student) => student.feePaid || 0;
   const calculateTotalDue = (student) => student.curBalance || 0;
@@ -27,6 +29,11 @@ export default function StudentTable({
     paginatedStudents.some(student => selectedStudents.includes(student.studentId)) &&
     !isAllSelected;
 
+  // Dropdown state
+  const [showItemsDropdown, setShowItemsDropdown] = useState(false);
+
+  const itemsPerPageOptions = [10, 25, 50, 100];
+
   if (pageLoading) {
     return (
       <div className="p-12 flex flex-col items-center justify-center">
@@ -38,11 +45,54 @@ export default function StudentTable({
 
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+      {/* Items Per Page Filter - NEW SECTION */}
+      <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          Total students: <span className="font-semibold text-gray-800">{filteredStudents.length}</span>
+        </div>
+        <div className="relative">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Show:</span>
+            <button
+              onClick={() => setShowItemsDropdown(!showItemsDropdown)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700"
+            >
+              {itemsPerPage} per page
+              <ChevronDown size={16} className={`transition-transform ${showItemsDropdown ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+          
+          {/* Dropdown Menu */}
+          {showItemsDropdown && (
+            <>
+              <div 
+                className="fixed inset-0 z-10" 
+                onClick={() => setShowItemsDropdown(false)}
+              />
+              <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                {itemsPerPageOptions.map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => {
+                      onItemsPerPageChange(option);
+                      setShowItemsDropdown(false);
+                    }}
+                    className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 ${option === itemsPerPage ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'}`}
+                  >
+                    {option} per page
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gradient-to-r from-gray-50 to-blue-50">
             <tr>
-              {/* Selection Checkbox Column - FIXED */}
+              {/* Selection Checkbox Column */}
               <th className="p-4 w-12">
                 <div className="flex items-center justify-center">
                   <input
@@ -85,7 +135,7 @@ export default function StudentTable({
                   key={student._id} 
                   className={`hover:bg-gray-50 transition-colors ${selectedStudents.includes(student.studentId) ? 'bg-blue-50' : ''}`}
                 >
-                  {/* Checkbox Cell - FIXED */}
+                  {/* Checkbox Cell */}
                   <td className="p-4">
                     <div className="flex items-center justify-center">
                       <input
@@ -153,8 +203,6 @@ export default function StudentTable({
                     </div>
                   </td>
                   
-                
-                  
                   {/* Actions Column */}
                   <td className="p-4">
                     <div className="flex items-center gap-2">
@@ -184,7 +232,7 @@ export default function StudentTable({
         </table>
       </div>
 
-      {/* Bulk Selection Status Bar - FIXED */}
+      {/* Bulk Selection Status Bar */}
       {selectedStudents.length > 0 && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-3 border-t border-blue-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -194,7 +242,7 @@ export default function StudentTable({
             </p>
           </div>
           <button
-            onClick={() => onSelectAll([])} // Pass empty array to clear
+            onClick={() => onSelectAll([])}
             className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
           >
             Clear selection

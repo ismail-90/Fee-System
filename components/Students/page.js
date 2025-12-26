@@ -2,7 +2,15 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
-import { CheckCircle, FileText, Loader2, PlusCircle, Trash2 } from "lucide-react";
+import { 
+  CheckCircle, 
+  FileText, 
+  Loader2, 
+  PlusCircle, 
+  Trash2, 
+  Download,
+  FileSpreadsheet 
+} from "lucide-react";
 import { getStudentsByClassAPI } from "../../Services/feeService";
 import AppLayout from "../../components/AppLayout";
 import StatsCards from "./StatsCards";
@@ -14,6 +22,7 @@ import CreateStudentModal from "./CreateStudentModal";
 import { createStudentAPI, deleteMultipleStudentsAPI } from "../../Services/studentService";
 import BulkDeleteModal from "./BulkDeleteModal";
 import BulkInvoiceModal from "./BulkInvoiceModal";
+import { exportStudentsToExcel, exportFilteredStudentsToExcel } from "../../Services/exportService"; // Add this import
 
 export default function StudentsPage() {
   const [selectedStudents, setSelectedStudents] = useState([]);
@@ -30,7 +39,6 @@ export default function StudentsPage() {
   const [feeMonths, setFeeMonths] = useState([]);
   const [selectedFeeMonth, setSelectedFeeMonth] = useState("all");
   const [isBulkInvoiceModalOpen, setIsBulkInvoiceModalOpen] = useState(false);
-
   const [searchTerm, setSearchTerm] = useState("");
   const [pageLoading, setPageLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -39,9 +47,11 @@ export default function StudentsPage() {
   const [studentStatusFilter, setStudentStatusFilter] = useState("active");
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const itemsPerPage = 8;
+  const [itemsPerPage, setItemsPerPage] = useState(25);
   const [isFeeSlipModalOpen, setIsFeeSlipModalOpen] = useState(false);
   const [selectedStudentForSlip, setSelectedStudentForSlip] = useState(null);
+  const [exporting, setExporting] = useState(false); // Add this state
+  
   const selectedStudentObjects = students.filter(student =>
     selectedStudents.includes(student.studentId)
   );
@@ -49,6 +59,7 @@ export default function StudentsPage() {
   const allInactive =
     selectedStudentObjects.length > 0 &&
     selectedStudentObjects.every(student => student.status === "inactive");
+
   // 🔐 AUTH GUARD
   useEffect(() => {
     if (loading) return;
@@ -56,12 +67,11 @@ export default function StudentsPage() {
       router.push("/");
       return;
     }
-
     fetchClasses();
   }, [user, loading]);
 
   const fetchClasses = async () => {
-    const mockClasses = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+    const mockClasses = ["Play Group", "Nursery", "prep", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
     setClasses(mockClasses);
   };
 
@@ -73,24 +83,21 @@ export default function StudentsPage() {
       try {
         const res = await getStudentsByClassAPI(selectedClass);
 
-        // Check if API returned an error message
         if (res.message === "No students found for this class") {
           setStudents([]);
           setFilteredStudents([]);
-          setSections([]); // Clear sections if no students
-          setFeeMonths([]); // Clear months if no students
+          setSections([]);
+          setFeeMonths([]);
         } else if (res.data && Array.isArray(res.data)) {
           setStudents(res.data);
           setFilteredStudents(res.data);
 
-          // Extract unique sections from students
           const uniqueSections = [...new Set(res.data
             .map(student => student.section)
             .filter(section => section && section.trim() !== '')
           )];
           setSections(uniqueSections);
 
-          // Extract unique fee months from students
           const uniqueFeeMonths = [...new Set(res.data
             .map(student => student.feeMonth)
             .filter(month => month && month.trim() !== '')
@@ -118,22 +125,45 @@ export default function StudentsPage() {
     fetchStudents();
   }, [selectedClass]);
 
+  // Add Export Functions
+  const handleExportAllStudents = async () => {
+    try {
+      setExporting(true);
+      const result = await exportStudentsToExcel(selectedClass);
+      alert(`✅ Successfully exported ${result.count} students to ${result.fileName}`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert(`❌ Failed to export: ${error.message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportFilteredStudents = () => {
+    try {
+      setExporting(true);
+      const result = exportFilteredStudentsToExcel(filteredStudents);
+      alert(`✅ Successfully exported ${result.count} filtered students to ${result.fileName}`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert(`❌ Failed to export: ${error.message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleCreateStudent = async (studentData) => {
     try {
       console.log("Creating student with data:", studentData);
-
       const response = await createStudentAPI(studentData);
 
       if (response.success) {
         alert("Student created successfully!");
-
-        // Refresh students list
         const res = await getStudentsByClassAPI(selectedClass);
         if (res.data && Array.isArray(res.data)) {
           setStudents(res.data);
           setFilteredStudents(res.data);
 
-          // Update sections and months
           const uniqueSections = [...new Set(res.data
             .map(student => student.section)
             .filter(section => section && section.trim() !== '')
@@ -155,11 +185,15 @@ export default function StudentsPage() {
     }
   };
 
-  // Apply filters - اب sections aur fee month bhi include karein
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
+
+  // Apply filters
   useEffect(() => {
     let result = students;
 
-    // Apply search filter
     if (searchTerm) {
       result = result.filter(student =>
         student.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -170,22 +204,17 @@ export default function StudentsPage() {
       );
     }
 
-    // Apply section filter
     if (selectedSection !== "all") {
       result = result.filter(student => student.section === selectedSection);
     }
 
-    // Apply fee month filter
     if (selectedFeeMonth !== "all") {
       result = result.filter(student => student.feeMonth === selectedFeeMonth);
     }
 
-    // Apply student session filter
     if (studentSessionFilter !== "all") {
       result = result.filter(student => student.session === studentSessionFilter);
     }
-
-    // Apply student status filter
 
     if (studentStatusFilter === "active") {
       result = result.filter(student => student.status === "active");
@@ -216,7 +245,6 @@ export default function StudentsPage() {
         prevFiltered.filter(student => !selectedStudents.includes(student._id))
       );
 
-      // Update sections after deletion
       const updatedStudents = students.filter(student => !selectedStudents.includes(student._id));
       const uniqueSections = [...new Set(updatedStudents
         .map(student => student.section)
@@ -230,7 +258,6 @@ export default function StudentsPage() {
 
     } catch (error) {
       console.error("Error deleting students:", error);
-
       if (error.response?.data?.message) {
         alert(`Failed: ${error.response.data.message}`);
       } else if (error.message.includes("Network Error")) {
@@ -238,7 +265,6 @@ export default function StudentsPage() {
       } else {
         alert("Failed to InActive students. Please try again.");
       }
-
     } finally {
       setDeleting(false);
     }
@@ -291,10 +317,6 @@ export default function StudentsPage() {
     alert(`Edit student: ${student.studentName}`);
   };
 
-  const handleExportData = () => {
-    alert("Export functionality to be implemented");
-  };
-
   const handleGenerateFeeSlip = (student) => {
     setSelectedStudentForSlip(student);
     setIsFeeSlipModalOpen(true);
@@ -319,7 +341,40 @@ export default function StudentsPage() {
               <p className="text-gray-600 mt-2">Manage and monitor student information and fee status</p>
             </div>
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Export Buttons */}
+                <div className="flex items-center gap-2">
+                  {/* Export All Button */}
+                  <button
+                    onClick={handleExportAllStudents}
+                    disabled={exporting || students.length === 0}
+                    className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {exporting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileSpreadsheet size={18} />
+                    )}
+                    Export All ({students.length})
+                  </button>
+
+                  {/* Export Filtered Button */}
+                  {filteredStudents.length !== students.length && (
+                    <button
+                      onClick={handleExportFilteredStudents}
+                      disabled={exporting || filteredStudents.length === 0}
+                      className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white px-4 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {exporting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download size={18} />
+                      )}
+                      Export Filtered ({filteredStudents.length})
+                    </button>
+                  )}
+                </div>
+
                 {/* Create Student Button */}
                 <button
                   onClick={() => setIsCreateModalOpen(true)}
@@ -329,7 +384,7 @@ export default function StudentsPage() {
                   Create Student
                 </button>
 
-                {/* Bulk Invoice Button (Only show when students are selected) */}
+                {/* Bulk Invoice Button */}
                 {selectedStudents.length > 0 && (
                   <button
                     onClick={() => setIsBulkInvoiceModalOpen(true)}
@@ -353,7 +408,7 @@ export default function StudentsPage() {
                     <button
                       onClick={() => setIsDeleteModalOpen(true)}
                       className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg
-          ${allInactive
+                        ${allInactive
                           ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
                           : "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
                         }`}
@@ -365,17 +420,14 @@ export default function StudentsPage() {
                     </button>
                   );
                 })()}
-
-              
               </div>
-
             </div>
           </div>
 
           <StatsCards students={students} />
         </div>
 
-        {/* FiltersSection ko ab saare props pass karein */}
+        {/* FiltersSection */}
         <FiltersSection
           classes={classes}
           selectedClass={selectedClass}
@@ -400,7 +452,7 @@ export default function StudentsPage() {
           selectedCount={selectedStudents.length}
           onConfirm={handleBulkDelete}
           deleting={deleting}
-          actionType={allInactive ? "activate" : "inactivate"} // ✅ ALWAYS CORRECT
+          actionType={allInactive ? "activate" : "inactivate"}
         />
 
         <BulkInvoiceModal
@@ -417,14 +469,16 @@ export default function StudentsPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={handleItemsPerPageChange}
           setCurrentPage={setCurrentPage}
           handleViewDetails={handleViewDetails}
           handleEditStudent={handleEditStudent}
-          handleExportData={handleExportData}
+          handleExportData={() => handleExportFilteredStudents()} // Updated
           handleGenerateFeeSlip={handleGenerateFeeSlip}
           selectedStudents={selectedStudents}
           onSelectStudent={handleSelectStudent}
           onSelectAll={handleSelectAll}
+          exporting={exporting} // Pass exporting state
         />
       </div>
 

@@ -14,3 +14,4 @@ export const getProfileAPI = async () => {
   const response = await api.get("/global/profile");
   return response.data;
 }
+

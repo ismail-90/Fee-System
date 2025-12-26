@@ -12,6 +12,7 @@ export default function AppLayout({ children }) {
 
   // ✅ SIDEBAR STATE (MISSING PART)
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
 
   // 🔐 Auth Guard
   if (!loading && !user) {

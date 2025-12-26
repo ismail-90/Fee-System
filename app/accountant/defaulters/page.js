@@ -5,8 +5,14 @@ import AppLayout from '../../../components/AppLayout';
 
 export default function DefaultersPage() {
   const [defaulterStudents, setDefaulterStudents] = useState([]);
+  const [filteredStudents, setFilteredStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Filter states
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSection, setSelectedSection] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
 
   useEffect(() => {
     const fetchDefaulterStudents = async () => {
@@ -16,6 +22,7 @@ export default function DefaultersPage() {
 
         if (response.success) {
           setDefaulterStudents(response.data);
+          setFilteredStudents(response.data);
         } else {
           setError('Failed to fetch defaulter students');
         }
@@ -29,6 +36,43 @@ export default function DefaultersPage() {
 
     fetchDefaulterStudents();
   }, []);
+
+  // Extract unique classes and sections from data
+  const uniqueClasses = [...new Set(defaulterStudents.map(student => 
+    student.student?.className || ''
+  ))].filter(Boolean);
+
+  const uniqueSections = [...new Set(defaulterStudents.map(student => 
+    student.student?.section || ''
+  ))].filter(Boolean);
+
+  // Status options
+  const statusOptions = ['partial', 'paid', 'unpaid'];
+
+  // Apply filters
+  useEffect(() => {
+    let filtered = [...defaulterStudents];
+
+    if (selectedClass) {
+      filtered = filtered.filter(student => 
+        student.student?.className === selectedClass
+      );
+    }
+
+    if (selectedSection) {
+      filtered = filtered.filter(student => 
+        student.student?.section === selectedSection
+      );
+    }
+
+    if (selectedStatus) {
+      filtered = filtered.filter(student => 
+        student.status.toLowerCase() === selectedStatus.toLowerCase()
+      );
+    }
+
+    setFilteredStudents(filtered);
+  }, [selectedClass, selectedSection, selectedStatus, defaulterStudents]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -95,9 +139,75 @@ export default function DefaultersPage() {
           </p>
         </div>
 
-        {defaulterStudents.length === 0 ? (
+        {/* Filter Section */}
+        <div className="mb-6 bg-white rounded-lg shadow p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Class Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Class
+              </label>
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Classes</option>
+                {uniqueClasses.map((className) => (
+                  <option key={className} value={className}>
+                    {className}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Section Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Section
+              </label>
+              <select
+                value={selectedSection}
+                onChange={(e) => setSelectedSection(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Sections</option>
+                {uniqueSections.map((section) => (
+                  <option key={section} value={section}>
+                    {section}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Status
+              </label>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Status</option>
+                {statusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {filteredStudents.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-500 text-lg">No defaulter students found</p>
+            <p className="text-gray-500 text-lg">
+              {defaulterStudents.length === 0 
+                ? "No defaulter students found" 
+                : "No students match the selected filters"}
+            </p>
           </div>
         ) : (
           <>
@@ -105,11 +215,11 @@ export default function DefaultersPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-blue-800 font-semibold">
-                    Total Defaulters: {defaulterStudents.length}
+                    Total Defaulters: {filteredStudents.length}
                   </p>
                   <p className="text-blue-600 text-sm">
                     Total Outstanding: Rs. {(
-                      defaulterStudents.reduce((sum, student) => sum + student.remainingBalance, 0)
+                      filteredStudents.reduce((sum, student) => sum + student.remainingBalance, 0)
                     )}
                   </p>
                 </div>
@@ -130,7 +240,9 @@ export default function DefaultersPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Class
                       </th>
-
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Section
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Paid Amount
                       </th>
@@ -146,7 +258,7 @@ export default function DefaultersPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {defaulterStudents.map((defaulter) => (
+                    {filteredStudents.map((defaulter) => (
                       <tr key={defaulter.defaulterId} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
@@ -161,6 +273,11 @@ export default function DefaultersPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
                             {defaulter.student?.className || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {defaulter.student?.section || 'N/A'}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

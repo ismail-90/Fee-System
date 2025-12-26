@@ -53,8 +53,6 @@ export default function ExpensesPage() {
   return (
     <AppLayout>
     <div className="flex min-h-screen bg-gray-100 relative">
-
-
       {/* Dim Background Blur */}
       {open && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/10 z-40"></div>

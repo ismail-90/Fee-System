@@ -10,16 +10,23 @@ import {
   ChevronDown,
   Building,
   FileText,
-  UserCheck
+  UserCheck,
+  PieChart,
+  BookOpen,
+  FileCheck,
+  FlaskRound,
+  Palette,
+  Clock
 } from 'lucide-react';
-import { useState, useRef, useEffect} from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { uploadFeeCSVAPI } from '../Services/feeService';
 import { getCampusesAPI } from '../Services/campusService';
 import { getProfileAPI } from '../Services/authService';
 import { useAuth } from '../context/AuthContext';
 import { getDashboardStatsAPI } from '../Services/dashboardService';
 
-const Card = ({ title, value, icon: Icon, color, onClick, isUploadCard = false }) => {
+
+const Card = ({ title, value, icon: Icon, color, onClick, isUploadCard = false, children }) => {
   const cardContent = (
     <div className={`bg-white rounded-xl shadow-sm p-6 border border-gray-100 ${isUploadCard ? 'cursor-pointer hover:shadow-md transition-shadow duration-200' : ''}`}>
       <div className="flex items-center justify-between">
@@ -36,6 +43,7 @@ const Card = ({ title, value, icon: Icon, color, onClick, isUploadCard = false }
           <Icon size={24} className="text-white" />
         </div>
       </div>
+      {children && <div className="mt-4">{children}</div>}
     </div>
   );
 
@@ -48,6 +56,65 @@ const Card = ({ title, value, icon: Icon, color, onClick, isUploadCard = false }
   }
 
   return cardContent;
+};
+
+const BreakdownCard = ({ title, breakdown, loading }) => {
+  if (loading) return null;
+  
+  const breakdownItems = [
+    { key: 'tuitionFee', label: 'Tuition Fee', icon: BookOpen, color: 'bg-blue-100 text-blue-600' },
+    { key: 'booksCharges', label: 'Books Charges', icon: FileText, color: 'bg-green-100 text-green-600' },
+    { key: 'registrationFee', label: 'Registration Fee', icon: FileCheck, color: 'bg-purple-100 text-purple-600' },
+    { key: 'examFee', label: 'Exam Fee', icon: FileText, color: 'bg-yellow-100 text-yellow-600' },
+    { key: 'labFee', label: 'Lab Fee', icon: FlaskRound, color: 'bg-red-100 text-red-600' },
+    { key: 'artCraftFee', label: 'Art & Craft', icon: Palette, color: 'bg-pink-100 text-pink-600' },
+    { key: 'karateFee', label: 'Karate Fee', icon: UserCheck, color: 'bg-indigo-100 text-indigo-600' },
+    { key: 'lateFeeFine', label: 'Late Fee Fine', icon: Clock, color: 'bg-gray-100 text-gray-600' }
+  ];
+
+  const hasBreakdownData = breakdown && Object.values(breakdown).some(value => value > 0);
+
+  return (
+    <div className="col-span-full lg:col-span-2 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+          <PieChart className="w-5 h-5 mr-2 text-gray-600" />
+          {title}
+        </h3>
+        <div className="px-3 py-1 bg-gray-100 rounded-full">
+          <span className="text-sm font-medium text-gray-600">
+            Total: Rs.{Object.values(breakdown || {}).reduce((a, b) => a + b, 0).toLocaleString()}
+          </span>
+        </div>
+      </div>
+      
+      {!hasBreakdownData ? (
+        <div className="text-center py-8">
+          <PieChart className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+          <p className="text-gray-500">No breakdown data available</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {breakdownItems.map(item => {
+            const amount = breakdown?.[item.key] || 0;
+            if (amount === 0) return null;
+            
+            return (
+              <div key={item.key} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center mb-2">
+                  <div className={`p-2 rounded-lg ${item.color}`}>
+                    <item.icon className="w-4 h-4" />
+                  </div>
+                  <span className="ml-2 text-sm font-medium text-gray-700">{item.label}</span>
+                </div>
+                <p className="text-lg font-bold text-gray-900">Rs.{amount.toLocaleString()}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default function DashboardCards({ onCSVUpload }) {
@@ -71,7 +138,8 @@ export default function DashboardCards({ onCSVUpload }) {
     totalExpenses: 0,
     totalReceived: 0,
     totalPending: 0,
-    totalDefaulters: 0
+    totalDefaulters: 0,
+    totalReceivedBreakdown: null
   });
   const [loadingStats, setLoadingStats] = useState(true);
 
@@ -103,7 +171,8 @@ export default function DashboardCards({ onCSVUpload }) {
           totalExpenses: response.data.totalExpenses || 0,
           totalReceived: response.data.totalReceived || 0,
           totalPending: response.data.totalPending || 0,
-          totalDefaulters: response.data.totalDefaulters || 0
+          totalDefaulters: response.data.totalDefaulters || 0,
+          totalReceivedBreakdown: response.data.totalReceivedBreakdown || null
         });
       }
     } catch (error) {
@@ -150,6 +219,17 @@ export default function DashboardCards({ onCSVUpload }) {
       setLoadingProfile(false);
     }
   };
+  const handleExportAllStudents = async () => {
+  try {
+    setExporting(true);
+    const result = await exportStudentsToExcel("all");
+    alert(`✅ Successfully exported ${result.count} students to ${result.fileName}`);
+  } catch (error) {
+    alert(`❌ Failed to export: ${error.message}`);
+  } finally {
+    setExporting(false);
+  }
+};
 
   const handleCSVUploadClick = () => {
     setShowPopup(true);
@@ -301,7 +381,6 @@ export default function DashboardCards({ onCSVUpload }) {
       icon: AlertCircle,
       color: 'bg-red-500'
     },
-
     {
       title: 'Import CSV',
       value: uploading ? 'Uploading...' : 'Upload CSV',
@@ -342,6 +421,17 @@ export default function DashboardCards({ onCSVUpload }) {
         ))}
       </div>
 
+      {/* Received Fee Breakdown - Show for Accountant */}
+      {user?.role === 'accountant' && (
+        <div className="mb-8">
+          <BreakdownCard 
+            title="Received Fee Breakdown"
+            breakdown={dashboardData.totalReceivedBreakdown}
+            loading={loadingStats}
+          />
+        </div>
+      )}
+
       {/* Hidden file input */}
       <input
         type="file"
@@ -379,7 +469,6 @@ export default function DashboardCards({ onCSVUpload }) {
                 disabled={uploading}
               >
                 <X className="w-5 h-5" />
-                
               </button>
             </div>
 

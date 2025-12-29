@@ -22,6 +22,7 @@ import CreateStudentModal from "./CreateStudentModal";
 import { createStudentAPI, deleteMultipleStudentsAPI } from "../../Services/studentService";
 import BulkDeleteModal from "./BulkDeleteModal";
 import BulkInvoiceModal from "./BulkInvoiceModal";
+import { getStudentRecordByIdAPI } from "../../Services/studentService";
 import { exportStudentsToExcel, exportFilteredStudentsToExcel } from "../../Services/exportService"; // Add this import
 
 export default function StudentsPage() {
@@ -124,7 +125,20 @@ export default function StudentsPage() {
 
     fetchStudents();
   }, [selectedClass]);
+const [studentRecord, setStudentRecord] = useState(null);
 
+// Detail modal open karne se pehle data fetch karein:
+const handleViewDetails = async (student) => {
+  setSelectedStudent(student);
+  setIsDetailModalOpen(true);
+  
+  try {
+    const record = await getStudentRecordByIdAPI(student.studentId);
+    setStudentRecord(record);
+  } catch (error) {
+    console.error("Error fetching student record:", error);
+  }
+};
   // Add Export Functions
   const handleExportAllStudents = async () => {
     try {
@@ -308,10 +322,7 @@ export default function StudentsPage() {
     currentPage * itemsPerPage
   );
 
-  const handleViewDetails = (student) => {
-    setSelectedStudent(student);
-    setIsDetailModalOpen(true);
-  };
+  
 
   const handleEditStudent = (student) => {
     alert(`Edit student: ${student.studentName}`);
@@ -483,11 +494,12 @@ export default function StudentsPage() {
       </div>
 
       <StudentDetailModal
-        isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
-        student={selectedStudent}
-        onEdit={handleEditStudent}
-      />
+  isOpen={isDetailModalOpen}
+  onClose={() => setIsDetailModalOpen(false)}
+  student={selectedStudent}
+  studentRecord={studentRecord}
+  onEdit={handleEditStudent}
+/>
       <CreateStudentModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

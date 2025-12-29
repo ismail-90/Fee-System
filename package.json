@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
+    "@heroicons/react": "^2.2.0",
     "antd": "^6.1.1",
     "axios": "^1.13.2",
     "date-fns": "^4.1.0",
     "file-saver": "^2.0.5",
+    "heroicons": "^2.2.0",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.554.0",

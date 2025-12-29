@@ -11,17 +11,22 @@ import {
   Share2,
   Mail as MailIcon,
   Edit2,
-  Trash2
+  Trash2,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { generateFeeReceiptAPI } from "../../Services/feeService";
 
 export default function FeeSlipModal({ isOpen, onClose, student }) {
   // State declarations
   const [feeMonth, setFeeMonth] = useState("");
+  const [feeMonthType, setFeeMonthType] = useState("single"); // "single" or "double"
+  const [secondMonth, setSecondMonth] = useState("");
   const [generatingSlip, setGeneratingSlip] = useState(false);
   const [slipData, setSlipData] = useState(null);
   const [copied, setCopied] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [showDoubleMonthSelector, setShowDoubleMonthSelector] = useState(false);
   
   // Fee breakdown state
   const [feeBreakdown, setFeeBreakdown] = useState({
@@ -36,8 +41,8 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
   });
 
   const feeMonths = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
   ];
 
   // Initialize with student's fee data
@@ -56,11 +61,11 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
       // Initialize fee breakdown from student data if available
       setFeeBreakdown({
         tuitionFee: student.tutionFee || 0,
-        booksCharges: 0, // Not in student object
-        registrationFee: 0, // Not in student object
+        booksCharges: 0,
+        registrationFee: 0,
         examFee: student.examFeeTotal || 0,
         labFee: student.labsFee || 0,
-        artCraftFee: 0, // Not in student object
+        artCraftFee: 0,
         karateFee: student.karateFeeTotal || 0,
         lateFeeFine: student.lateFeeFine || 0
       });
@@ -111,10 +116,65 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     }
   };
 
+  // Format month string for API
+  const formatMonthString = (monthName) => {
+    return monthName.substring(0, 3).toLowerCase();
+  };
+
+  // Get available months for second selection
+  const getAvailableSecondMonths = () => {
+    if (!feeMonth) return feeMonths;
+    const currentIndex = feeMonths.indexOf(feeMonth);
+    return feeMonths.slice(currentIndex + 1);
+  };
+
+  // Handle single month selection
+  const handleSingleMonthSelect = (month) => {
+    setFeeMonth(month);
+    if (feeMonthType === "double") {
+      setFeeMonthType("single");
+    }
+  };
+
+  // Handle double month selection
+  const handleDoubleMonthSelect = () => {
+    setFeeMonthType("double");
+    setShowDoubleMonthSelector(true);
+    // Auto-select next month as second month
+    const currentIndex = feeMonths.indexOf(feeMonth);
+    if (currentIndex < feeMonths.length - 1) {
+      setSecondMonth(feeMonths[currentIndex + 1]);
+    }
+  };
+
+  // Get display month text
+  const getMonthDisplayText = () => {
+    if (feeMonthType === "single") {
+      return feeMonth;
+    } else {
+      return `${feeMonth} & ${secondMonth}`;
+    }
+  };
+
+  // Get API month string
+  const getApiMonthString = () => {
+    if (feeMonthType === "single") {
+      return formatMonthString(feeMonth);
+    } else {
+      return `${formatMonthString(feeMonth)},${formatMonthString(secondMonth)}`;
+    }
+  };
+
   // API Functions
   const generateFeeSlip = async () => {
     if (!student || !feeMonth) {
       alert("Please select a month");
+      return;
+    }
+
+    // Validate double month
+    if (feeMonthType === "double" && !secondMonth) {
+      alert("Please select second month for double month fee slip");
       return;
     }
 
@@ -129,8 +189,9 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     try {
       const feeData = {
         studentId: student.studentId,
-        feeMonth: feeMonth.substring(0, 3).toLowerCase(),
-        feeBreakdown: feeBreakdown
+        feeMonth: getApiMonthString(), // Use formatted month string
+        feeBreakdown: feeBreakdown,
+        monthType: feeMonthType // Add month type to data
       };
 
       const response = await generateFeeReceiptAPI(feeData);
@@ -159,7 +220,8 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Fee-Slip-${student?.studentName || 'student'}-${slipData.feeMonth || feeMonth}.pdf`;
+        const monthText = feeMonthType === "single" ? feeMonth : `${feeMonth}-${secondMonth}`;
+        a.download = `Fee-Slip-${student?.studentName || 'student'}-${monthText}.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -186,7 +248,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
       try {
         await navigator.share({
           title: `Fee Slip - ${student?.studentName || 'Student'}`,
-          text: `Fee slip for ${student?.studentName || 'Student'}, ${slipData.feeMonth || feeMonth}`,
+          text: `Fee slip for ${student?.studentName || 'Student'}, ${getMonthDisplayText()}`,
           url: shareUrl,
         });
       } catch (error) {
@@ -201,7 +263,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     if (!slipData) return;
     
     const shareUrl = slipData.previewUrl || slipData.invoiceUrl;
-    const subject = `Fee Slip - ${student?.studentName || 'Student'} - ${slipData.feeMonth || feeMonth}`;
+    const subject = `Fee Slip - ${student?.studentName || 'Student'} - ${getMonthDisplayText()}`;
     const body = `Dear Parent,\n\nPlease find attached the fee slip for ${student?.studentName || 'Student'}.\n\nFee Slip: ${shareUrl}\n\nRegards,\nSchool Administration`;
     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
@@ -216,6 +278,9 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
   const handleDone = () => {
     setSlipData(null);
     setShowBreakdown(false);
+    setShowDoubleMonthSelector(false);
+    setFeeMonthType("single");
+    setSecondMonth("");
     resetBreakdown();
     onClose();
   };
@@ -225,9 +290,9 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
 
   return (
     <div className="fixed inset-0 z-60 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
-          <div>
+          <div className="flex gap-4">
             <h2 className="text-2xl font-bold text-gray-800">Generate Fee Slip</h2>
             <p className="text-gray-600 mt-1">
               For: {student.studentName} (Class {student.className})
@@ -244,10 +309,10 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
         <div className="p-6">
           {/* Student Info Summary */}
           <div className="mb-8 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <div>
                 <p className="text-sm text-gray-600">Student ID</p>
-                <p className="font-medium font-mono">{student.studentId}</p>
+                <p className="font-medium font-mono">{student.studentId.slice(-6)}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Father's Name</p>
@@ -268,29 +333,117 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
             </div>
           </div>
 
-          {/* Month Selection */}
+          {/* Month Type Selection */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-3">
-              Select Fee Month
+              Select Fee Period Type
             </label>
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-              {feeMonths.map((month) => (
-                <button
-                  key={month}
-                  onClick={() => setFeeMonth(month)}
-                  className={`px-3 py-2.5 rounded-lg border transition-all ${feeMonth === month
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-md'
-                      : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
-                    }`}
-                >
-                  <div className="font-medium">{month.substring(0, 3)}</div>
-                  <div className="text-xs opacity-75">{month.substring(3)}</div>
-                </button>
-              ))}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <button
+                onClick={() => {
+                  setFeeMonthType("single");
+                  setShowDoubleMonthSelector(false);
+                }}
+                className={`px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
+                  feeMonthType === "single"
+                    ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-500 text-blue-700 shadow-sm'
+                    : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+                }`}
+              >
+                <FileText size={18} />
+                Single Month
+              </button>
+              <button
+                onClick={handleDoubleMonthSelect}
+                className={`px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
+                  feeMonthType === "double"
+                    ? 'bg-gradient-to-r from-purple-50 to-pink-50 border-purple-500 text-purple-700 shadow-sm'
+                    : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+                }`}
+              >
+                <FileText size={18} />
+                <FileText size={18} />
+                Double Month
+              </button>
             </div>
+
+            {/* Single Month Selector */}
+            <div className={`mb-4 ${feeMonthType === "single" ? 'block' : 'hidden'}`}>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Select Month
+              </label>
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                {feeMonths.map((month) => (
+                  <button
+                    key={month}
+                    onClick={() => handleSingleMonthSelect(month)}
+                    className={`px-3 py-2.5 rounded-lg border transition-all ${feeMonth === month
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-md'
+                        : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+                      }`}
+                  >
+                    <div className="font-medium">{month.substring(0, 3)}</div>
+                    <div className="text-xs opacity-75">{month.substring(3)}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Double Month Selector */}
+            {feeMonthType === "double" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      First Month
+                    </label>
+                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                      {feeMonths.slice(0, feeMonths.length - 1).map((month) => (
+                        <button
+                          key={month}
+                          onClick={() => setFeeMonth(month)}
+                          className={`px-3 py-2.5 rounded-lg border transition-all ${
+                            feeMonth === month
+                              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-md'
+                              : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+                          }`}
+                        >
+                          <div className="font-medium">{month.substring(0, 3)}</div>
+                          <div className="text-xs opacity-75">{month.substring(3)}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Second Month
+                    </label>
+                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                      {getAvailableSecondMonths().map((month) => (
+                        <button
+                          key={month}
+                          onClick={() => setSecondMonth(month)}
+                          className={`px-3 py-2.5 rounded-lg border transition-all ${
+                            secondMonth === month
+                              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-600 shadow-md'
+                              : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+                          }`}
+                        >
+                          <div className="font-medium">{month.substring(0, 3)}</div>
+                          <div className="text-xs opacity-75">{month.substring(3)}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                
+              </div>
+            )}
           </div>
 
-          {/* Fee Breakdown Section - Always Visible */}
+          {/* Fee Breakdown Section */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-gray-800">Fee Breakdown</h3>
@@ -305,12 +458,12 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Column 1 */}
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tuition Fee
+                    Tuition Fee {feeMonthType === "double" && "(for 2 months)"}
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
@@ -342,7 +495,51 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                   </div>
                 </div>
 
+               
+              </div>
+
+              {/* Column 2 */}
+              <div className="space-y-4">
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Lab Fee {feeMonthType === "double" && "(for 2 months)"}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                    <input
+                      type="number"
+                      value={feeBreakdown.labFee || ''}
+                      onChange={(e) => handleBreakdownChange('labFee', e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Art & Craft Fee {feeMonthType === "double" && "(for 2 months)"}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                    <input
+                      type="number"
+                      value={feeBreakdown.artCraftFee || ''}
+                      onChange={(e) => handleBreakdownChange('artCraftFee', e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+               
+              </div>
+
+              {/* Column 3 */}
+              <div className="space-y-4">
+                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Registration Fee
                   </label>
@@ -361,7 +558,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Exam Fee
+                    Exam Fee {feeMonthType === "double" && "(for 2 months)"}
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
@@ -375,47 +572,14 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* Column 2 */}
+                </div>
+
+              {/* Column 4 - Empty for spacing */}
               <div className="space-y-4">
-                <div>
+ <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Lab Fee
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
-                    <input
-                      type="number"
-                      value={feeBreakdown.labFee || ''}
-                      onChange={(e) => handleBreakdownChange('labFee', e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="0"
-                      min="0"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Art & Craft Fee
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
-                    <input
-                      type="number"
-                      value={feeBreakdown.artCraftFee || ''}
-                      onChange={(e) => handleBreakdownChange('artCraftFee', e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="0"
-                      min="0"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Karate Fee
+                    Karate Fee {feeMonthType === "double" && "(for 2 months)"}
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
@@ -447,17 +611,12 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                   </div>
                 </div>
               </div>
+
+
+
             </div>
 
-            {/* Total Preview */}
-            <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-              <div className="flex justify-between items-center">
-                <span className="text-lg font-bold text-gray-800">Total Amount:</span>
-                <span className="text-2xl font-bold text-blue-600">
-                  Rs. {calculateTotal().toLocaleString()}
-                </span>
-              </div>
-            </div>
+          
           </div>
 
           {/* Generated Slip Preview */}
@@ -465,9 +624,8 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
             <div className="mb-8 p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
               <h3 className="font-bold text-green-800 mb-4 flex items-center gap-2">
                 <CheckCircle size={20} />
-                Fee Slip Generated Successfully
+                {feeMonthType === "double" ? "Double Month " : ""}Fee Slip Generated Successfully
               </h3>
-              
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-700">Invoice Number:</span>
@@ -484,8 +642,8 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                 </div>
                 
                 <div className="flex justify-between">
-                  <span className="text-gray-700">Fee Month:</span>
-                  <span className="font-medium">{slipData.feeMonth || feeMonth}</span>
+                  <span className="text-gray-700">Fee Period:</span>
+                  <span className="font-medium">{getMonthDisplayText()}</span>
                 </div>
                 
                 <div className="flex justify-between">
@@ -600,7 +758,12 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
           <div className="flex items-center gap-3">
             <div className={`w-3 h-3 rounded-full ${generatingSlip ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}></div>
             <p className="text-sm text-gray-600">
-              Selected: <span className="font-medium capitalize">{feeMonth}</span>
+              Selected: <span className="font-medium">{getMonthDisplayText()}</span>
+              {feeMonthType === "double" && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 ml-2">
+                  Double Month
+                </span>
+              )}
               {slipData && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">
                   ✓ Generated
@@ -621,7 +784,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
             {!slipData ? (
               <button
                 onClick={generateFeeSlip}
-                disabled={generatingSlip}
+                disabled={generatingSlip || (feeMonthType === "double" && !secondMonth)}
                 className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
               >
                 {generatingSlip ? (
@@ -632,7 +795,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                 ) : (
                   <>
                     <FileText size={16} />
-                    Generate Fee Slip
+                    {feeMonthType === "double" ? "Generate Double Month Slip" : "Generate Fee Slip"}
                   </>
                 )}
               </button>

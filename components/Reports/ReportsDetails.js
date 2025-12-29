@@ -1,259 +1,175 @@
 'use client';
 
-import { useEffect, useState, useRef } from "react";
+import { useState, useEffect, useRef } from 'react';
 import AppLayout from "../../components/AppLayout";
-import { dailyExpenseReport, dailyFeeReport } from "../../Services/reportServices";
+import { getDailyReportAPI } from "../../Services/reportServices";
 
 export default function ReportsDetails() {
-  const [expense, setExpense] = useState(null);
-  const [fee, setFee] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("expense"); 
-  
-  const contentRef = useRef(null);
+  const [reportData, setReportData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchReports();
-  }, []);
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    bfAmount: "",
+  });
 
-  const fetchReports = async () => {
+  const printRef = useRef();
+
+  const fetchReport = async () => {
     try {
-      const expenseRes = await dailyExpenseReport();
-      const feeRes = await dailyFeeReport();
-      setExpense(expenseRes);
-      setFee(feeRes);
-    } catch (err) {
-      console.error(err);
+      setLoading(true);
+      const response = await getDailyReportAPI(formData);
+      setReportData(response);
+    } catch (error) {
+      console.error(error);
+      alert("Report load nahi ho saka");
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePrint = () => {
-    if (!contentRef.current) return;
-    
-    const originalContents = document.body.innerHTML;
-    
-    const printContents = contentRef.current.innerHTML;
-    
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Daily Report</title>
-          <style>
-            @media print {
-              body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
-              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-              th { background-color: #f2f2f2; }
-              .no-print { display: none !important; }
-              .print-header { margin-bottom: 20px; text-align: center; }
-              .print-header h1 { margin: 0 0 10px 0; font-size: 24px; }
-              .print-header p { margin: 0; color: #666; }
-              .summary-grid { display: flex; justify-content: space-between; margin: 20px 0; }
-              .summary-item { text-align: center; }
-              .total-amount { color: red; font-weight: bold; }
-              .paid-amount { color: green; font-weight: bold; }
-            }
-            @media screen {
-              body { padding: 20px; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="print-header">
-            <h1>${activeTab === 'expense' ? 'Daily Expense Report' : 'Daily Fee Report'}</h1>
-            <p>Report Date: ${new Date().toLocaleDateString()}</p>
-          </div>
-          <div class="print-content">
-            ${printContents}
-          </div>
-          <script>
-            window.onload = function() {
-              window.print();
-              window.onafterprint = function() {
-                window.close();
-              };
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    
-    printWindow.document.close();
+  useEffect(() => {
+    fetchReport();
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: name === 'bfAmount' ? Number(value) : value
+    });
   };
 
-  if (loading) {
-    return (
-      <AppLayout>
-        <p className="p-6">Loading daily report...</p>
-      </AppLayout>
-    );
-  }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    fetchReport();
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="min-h-screen bg-gray-100 p-6">
+        <div className="max-w-4xl mx-auto space-y-6">
 
-        {/* TOP BUTTONS */}
-        <div className="flex justify-between items-center print:hidden">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveTab("expense")}
-              className={`px-4 py-2 rounded ${
-                activeTab === "expense"
-                  ? "bg-black text-white"
-                  : "bg-gray-200"
-              }`}
-            >
-              Daily Expenses
-            </button>
-
-            <button
-              onClick={() => setActiveTab("fee")}
-              className={`px-4 py-2 rounded ${
-                activeTab === "fee"
-                  ? "bg-black text-white"
-                  : "bg-gray-200"
-              }`}
-            >
-              Daily Fee Report
-            </button>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={handlePrint}
-              className="px-4 py-2 rounded bg-gray-200"
-            >
-              Print
-            </button>
-          </div>
-        </div>
-
-        
-        <div 
-          ref={contentRef} 
-          className="bg-white p-6 rounded-lg shadow space-y-6"
-        >
-       
-          {activeTab === "expense" && expense && (
-            <>
-              <h2 className="text-xl font-semibold print:hidden">
-                Daily Expense Summary
-              </h2>
-
-              <div className="grid grid-cols-3 gap-4 text-sm print:flex print:justify-between">
-                <div className="summary-item">
-                  <p className="text-gray-500">Total Expense</p>
-                  <p className="text-lg font-bold text-red-600 total-amount">
-                    Rs {expense.totalAmount}
-                  </p>
-                </div>
-                <div className="summary-item">
-                  <p className="text-gray-500">Total Entries</p>
-                  <p className="text-lg font-bold">{expense.count}</p>
-                </div>
-                <div className="summary-item">
-                  <p className="text-gray-500">Report Date</p>
-                  <p className="font-medium">
-                    {new Date().toLocaleDateString()}
-                  </p>
-                </div>
+          {/* Filters */}
+          <div className="bg-white p-6 rounded shadow print-hide">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium">Date</label>
+                <input
+                  type="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleChange}
+                  className="w-full border px-3 py-2 rounded"
+                />
               </div>
 
-              <table className="w-full border text-sm mt-4">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="border p-2 text-left">Title</th>
-                    <th className="border p-2 text-right">Amount</th>
-                    <th className="border p-2 text-right">Created At</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {expense.data.map(item => (
-                    <tr key={item._id}>
-                      <td className="border p-2">{item.title}</td>
-                      <td className="border p-2 text-right">
-                        Rs {item.amount}
-                      </td>
-                      <td className="border p-2 text-right">
-                        {new Date(item.createdAt).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-
-          {/* FEE TAB */}
-          {activeTab === "fee" && fee && (
-            <>
-              <h2 className="text-xl font-semibold print:hidden">
-                Daily Fee Report
-              </h2>
-
-              <div className="grid grid-cols-4 gap-4 text-sm print:flex print:justify-between">
-                <div className="summary-item">
-                  <p className="text-gray-500">Paid Invoices</p>
-                  <p className="text-lg font-bold">
-                    {fee.count.paidInvoices}
-                  </p>
-                </div>
-                <div className="summary-item">
-                  <p className="text-gray-500">Defaulters</p>
-                  <p className="text-lg font-bold">
-                    {fee.count.defaulters}
-                  </p>
-                </div>
-                <div className="summary-item">
-                  <p className="text-gray-500">Total Paid</p>
-                  <p className="text-lg font-bold text-green-600 paid-amount">
-                    Rs {fee.totals.paidInvoicesAmount}
-                  </p>
-                </div>
-                <div className="summary-item">
-                  <p className="text-gray-500">Report Date</p>
-                  <p className="font-medium">
-                    {new Date().toLocaleDateString()}
-                  </p>
-                </div>
+              <div>
+                <label className="text-sm font-medium">Brought Forward</label>
+                <input
+                  type="number"
+                  name="bfAmount"
+                  value={formData.bfAmount}
+                  onChange={handleChange}
+                  className="w-full border px-3 py-2 rounded"
+                />
               </div>
 
-              <table className="w-full border text-sm mt-4">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="border p-2">Invoice</th>
-                    <th className="border p-2">Student</th>
-                    <th className="border p-2">Class</th>
-                    <th className="border p-2">Month</th>
-                    <th className="border p-2 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fee.data.paidInvoices.map(item => (
-                    <tr key={item._id}>
-                      <td className="border p-2">
-                        {item.invoiceNumber.slice(-6)}
-                      </td>
-                      <td className="border p-2">{item.studentName}</td>
-                      <td className="border p-2">{item.className}</td>
-                      <td className="border p-2">{item.feeMonth}</td>
-                      <td className="border p-2 text-right">
-                        Rs {item.feeId.allTotal}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
+              <div className="flex items-end gap-2">
+                <button
+                  type="submit"
+                  className="w-full bg-gray-800 text-white py-2 rounded"
+                >
+                  Load Report
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="w-full bg-blue-600 text-white py-2 rounded"
+                >
+                  Print
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Report */}
+          {loading && <p className="text-center">Loading...</p>}
+
+          {!loading && reportData && (
+            <div
+              ref={printRef}
+              className="bg-white p-8 rounded shadow space-y-4 print-area"
+            >
+              <div className="text-center border-b pb-4 mb-4">
+                <h2 className="text-2xl font-bold">Daily Cash Report</h2>
+                <p className="text-sm text-gray-600">
+                  Date: {reportData.reportDate}
+                </p>
+              </div>
+
+              <div className="space-y-3 text-lg">
+                <div className="flex justify-between">
+                  <span>Brought Forward</span>
+                  <span>Rs. {reportData.bfAmount}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Total Income</span>
+                  <span>Rs. {reportData.income.totalIncome}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Total Expense</span>
+                  <span>Rs. {reportData.expenses.totalExpense}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Remaining Amount</span>
+                  <span>Rs. {reportData.remainingAmount}</span>
+                </div>
+
+                <div className="flex justify-between font-bold text-xl border-t pt-3 mt-3">
+                  <span>Cash In Hand</span>
+                  <span>Rs. {reportData.cashInHand}</span>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Print Styles */}
+      <style jsx global>{`
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+
+    .print-area,
+    .print-area * {
+      visibility: visible;
+    }
+
+    .print-area {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      padding: 20px;
+      box-shadow: none;
+    }
+
+    .print-hide {
+      display: none !important;
+    }
+  }
+`}</style>
+
     </AppLayout>
   );
 }

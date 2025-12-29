@@ -33,3 +33,9 @@ export const getDefaultersByCampusAPI = async (campusId) => {
   const response = await api.get(`/global/defaulter/${campusId}`);
   return response.data;
 }
+
+// get student record by student id
+export const getStudentRecordByIdAPI = async (studentId) => {
+  const response = await api.get(`/global/paid-defaulter/${studentId}`);
+  return response.data;
+}

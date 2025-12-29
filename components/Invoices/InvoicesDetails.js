@@ -73,7 +73,7 @@ export default function InvoicesDetails() {
     setSelectedInvoice(invoice);
 
     setPaymentAmount({
-      total: invoice.totalFee || 0,
+      total: invoice.feeId?.total || "",
       tutionFee: invoice.feeId?.tutionFee || 0,
       examFee: invoice.feeId?.examFee || 0,
       labFee: invoice.feeId?.labFee || 0,
@@ -388,7 +388,7 @@ export default function InvoicesDetails() {
                         <input
                           type="number"
                           min="0"
-                          value={paymentAmount[key] || selectedInvoice.feeId?.[key] || 0}
+                          value={paymentAmount[key] || selectedInvoice.feeId?.[key] || ""}
                           onChange={(e) =>
                             setPaymentAmount(prev => ({ ...prev, [key]: Number(e.target.value) }))
                           }

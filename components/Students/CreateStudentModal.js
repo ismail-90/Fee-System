@@ -437,11 +437,22 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
                         disabled={submitting}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {Array.from({ length: 12 }, (_, i) => (
-                          <option key={i + 1} value={`${i + 1}`}>
-                            Class {i + 1}
-                          </option>
-                        ))}
+                        <option value="Play Group">Play Group</option>
+                        <option value="Nursery">Nursery</option>
+                        <option value="prep">Prep</option>
+                        <option value="1">Class 1</option>
+                        <option value="2">Class 2</option>
+                        <option value="3">Class 3</option>
+                        <option value="4">Class 4</option>
+                        <option value="5">Class 5</option>
+                        <option value="6">Class 6</option>
+                        <option value="7">Class 7</option>
+                        <option value="8">Class 8</option>
+                        <option value="9">Class 9</option>
+                        <option value="10">Class 10</option>
+                        <option value="11">Class 11</option>
+                        <option value="12">Class 12</option>
+
                       </select>
                     </div>
 

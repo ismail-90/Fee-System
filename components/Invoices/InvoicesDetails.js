@@ -45,7 +45,7 @@ export default function InvoicesDetails() {
   const fetchInvoices = async () => {
     setLoadingInvoices(true);
     try {
-      const status = activeTab === "unpaid" ? "unPaid" : "paid";
+      const status = activeTab === "unpaid" ? "unPaid" : activeTab === "paid" ? "paid" : "partial";
       const res = await getInvoicesByStatusAPI(status);
       setInvoices(res.data || []);
       setFilteredInvoices(res.data || []);
@@ -171,6 +171,18 @@ export default function InvoicesDetails() {
                 )}
               </div>
             </button>
+             <button
+              onClick={() => setActiveTab("partial")}
+              className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-all ${activeTab === "partial"
+                ? "bg-white border-t border-l border-r border-gray-200 text-green-600"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
+            >
+              <div className="flex items-center gap-2">
+                <CheckCircle size={16} />
+                Partial Invoices
+              </div>
+            </button>
             <button
               onClick={() => setActiveTab("paid")}
               className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-all ${activeTab === "paid"
@@ -183,6 +195,7 @@ export default function InvoicesDetails() {
                 Paid Invoices
               </div>
             </button>
+           
           </div>
         </div>
 

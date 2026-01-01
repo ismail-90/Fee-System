@@ -83,14 +83,6 @@ export default function DefaultersPage() {
     });
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
 
   const getStatusBadgeColor = (status) => {
     switch (status.toLowerCase()) {
@@ -103,6 +95,122 @@ export default function DefaultersPage() {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // Print function
+  const handlePrint = () => {
+    const printContent = document.getElementById('printable-table').innerHTML;
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Defaulter Students Report</title>
+          <style>
+            @media print {
+              body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+                color: #000;
+              }
+              .print-header {
+                text-align: center;
+                margin-bottom: 30px;
+                border-bottom: 2px solid #000;
+                padding-bottom: 20px;
+              }
+              .print-header h1 {
+                margin: 0;
+                font-size: 24px;
+              }
+              .print-header .subtitle {
+                margin-top: 5px;
+                color: #666;
+              }
+              .print-summary {
+                background: #f5f5f5;
+                padding: 15px;
+                margin-bottom: 20px;
+                border-radius: 5px;
+                border: 1px solid #ddd;
+              }
+              .print-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+              }
+              .print-table th {
+                background-color: #f8f9fa;
+                color: #000;
+                font-weight: bold;
+                padding: 12px 8px;
+                border: 1px solid #dee2e6;
+                text-align: left;
+                font-size: 14px;
+              }
+              .print-table td {
+                padding: 10px 8px;
+                border: 1px solid #dee2e6;
+                font-size: 13px;
+              }
+              .print-table tr:nth-child(even) {
+                background-color: #f9f9f9;
+              }
+              .status-badge {
+                padding: 3px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 500;
+                display: inline-block;
+              }
+              .status-partial { background-color: #fff3cd; color: #856404; }
+              .status-unpaid { background-color: #f8d7da; color: #721c24; }
+              .status-paid { background-color: #d4edda; color: #155724; }
+              .amount-paid { color: #28a745; font-weight: 500; }
+              .amount-remaining { color: #dc3545; font-weight: 500; }
+              .print-footer {
+                margin-top: 30px;
+                text-align: right;
+                font-size: 12px;
+                color: #666;
+                border-top: 1px solid #ddd;
+                padding-top: 10px;
+              }
+              .no-print {
+                display: none !important;
+              }
+            }
+            @page {
+              size: A4 landscape;
+              margin: 15mm;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-header">
+            <h1>Defaulter Students Report</h1>
+            <div class="subtitle">Students with pending or partial fee payments</div>
+            <div class="print-summary">
+              Total Defaulters: ${filteredStudents.length} | 
+              Total Outstanding: Rs. ${filteredStudents.reduce((sum, student) => sum + student.remainingBalance, 0).toLocaleString()}
+            </div>
+          </div>
+          ${printContent}
+          <div class="print-footer">
+            Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
+          </div>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    
+    // Auto print after content loads
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
   };
 
   if (loading) {
@@ -132,15 +240,30 @@ export default function DefaultersPage() {
   return (
     <AppLayout>
       <div className="p-6">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-2">Defaulter Students</h1>
-          <p className="text-gray-600">
-            Students with pending or partial fee payments
-          </p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold mb-2">Defaulter Students</h1>
+            <p className="text-gray-600">
+              Students with pending or partial fee payments
+            </p>
+          </div>
+          
+          {/* Print Button */}
+          {filteredStudents.length > 0 && (
+            <button
+              onClick={handlePrint}
+              className="no-print bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Print Report
+            </button>
+          )}
         </div>
 
         {/* Filter Section */}
-        <div className="mb-6 bg-white rounded-lg shadow p-4">
+        <div className="no-print mb-6 bg-white rounded-lg shadow p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Class Filter */}
             <div>
@@ -211,22 +334,57 @@ export default function DefaultersPage() {
           </div>
         ) : (
           <>
-            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="no-print mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-blue-800 font-semibold">
                     Total Defaulters: {filteredStudents.length}
                   </p>
                   <p className="text-blue-600 text-sm">
-                    Total Outstanding: Rs. {(
-                      filteredStudents.reduce((sum, student) => sum + student.remainingBalance, 0)
-                    )}
+                    Total Outstanding: Rs. {filteredStudents.reduce((sum, student) => sum + student.remainingBalance, 0)}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            {/* Printable Table */}
+            <div id="printable-table" className="print-only">
+              <table className="print-table">
+                <thead>
+                  <tr>
+                    <th>Student Name</th>
+                    <th>Father&apos;s Name</th>
+                    <th>Class</th>
+                    <th>Section</th>
+                    <th>Paid Amount</th>
+                    <th>Remaining Balance</th>
+                    <th>Status</th>
+                    <th>Created Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStudents.map((defaulter) => (
+                    <tr key={defaulter.defaulterId}>
+                      <td>{defaulter.student?.name || 'N/A'}</td>
+                      <td>{defaulter.student?.fatherName || 'N/A'}</td>
+                      <td>{defaulter.student?.className || 'N/A'}</td>
+                      <td>{defaulter.student?.section || 'N/A'}</td>
+                      <td className="amount-paid">Rs. {defaulter.paidAmount}</td>
+                      <td className="amount-remaining">Rs. {defaulter.remainingBalance}</td>
+                      <td>
+                        <span className={`status-badge status-${defaulter.status.toLowerCase()}`}>
+                          {defaulter.status}
+                        </span>
+                      </td>
+                      <td>{formatDate(defaulter.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Original Table (for screen view) */}
+            <div className="no-print bg-white rounded-lg shadow overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -307,6 +465,36 @@ export default function DefaultersPage() {
           </>
         )}
       </div>
+
+      {/* Add print-specific styles */}
+      <style jsx global>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+          .print-only {
+            display: block !important;
+          }
+          body * {
+            visibility: hidden;
+          }
+          #printable-table,
+          #printable-table * {
+            visibility: visible;
+          }
+          #printable-table {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+        }
+        @media screen {
+          .print-only {
+            display: none;
+          }
+        }
+      `}</style>
     </AppLayout>
   );
 }

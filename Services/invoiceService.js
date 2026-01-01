@@ -23,3 +23,9 @@ export const generateBulkInvoicesAPI = async (bulkData) => {
   const response = await api.post(`/global/generate-bulk-fee-slip`, bulkData);
   return response.data;
 }
+
+// get bulk invoices
+export const getBulkInvoicesAPI = async () => {
+  const response = await api.get(`/global/bulk-invoices`);
+  return response.data;
+}

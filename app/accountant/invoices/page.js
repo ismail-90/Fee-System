@@ -1,13 +1,11 @@
 'use client';
-import AppLayout from "../../../components/AppLayout";
-import InvoicesDetails from "../../../components/Invoices/InvoicesDetails";
+
+import InvoicesDetails from "../../../components/InvoicesInfo/InvoicesDetails";
 
 export default function Invoices() {
-   
-
   return (
    <>
-       <InvoicesDetails />
+     <InvoicesDetails /> 
    </>
   );
 }

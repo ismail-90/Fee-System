@@ -235,11 +235,7 @@ export default function Campuses() {
     }
   };
 
-  // View Accountant Details
-  const viewAccountantDetails = (accountant) => {
-    setSelectedAccountant(accountant);
-    setShowAccountantDetails(true);
-  };
+   
 
   // Filter Data
   const filteredCampuses = campuses.filter(campus =>

@@ -90,7 +90,7 @@ export default function StudentTable({
 
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gradient-to-r from-gray-50 to-blue-50">
+          <thead className="bg-linear-to-r from-gray-50 to-blue-50">
             <tr>
               {/* Selection Checkbox Column */}
               <th className="p-4 w-12">
@@ -234,7 +234,7 @@ export default function StudentTable({
 
       {/* Bulk Selection Status Bar */}
       {selectedStudents.length > 0 && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-3 border-t border-blue-200 flex items-center justify-between">
+        <div className="bg-linear-to-r from-blue-50 to-indigo-50 px-6 py-3 border-t border-blue-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
             <p className="text-sm font-medium text-blue-800">

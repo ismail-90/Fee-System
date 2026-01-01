@@ -232,7 +232,7 @@ export default function BulkInvoiceModal({
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg">
+            <div className="p-2 bg-linear-to-r from-blue-100 to-indigo-100 rounded-lg">
               <FileText className="text-blue-600" size={24} />
             </div>
             <div>
@@ -256,7 +256,7 @@ export default function BulkInvoiceModal({
 
         <div className="p-6">
           {/* Selected Students Summary */}
-          <div className="mb-8 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+          <div className="mb-8 p-4 bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                 <Users size={18} />
@@ -339,7 +339,7 @@ export default function BulkInvoiceModal({
                     setError("");
                   }}
                   className={`px-3 py-2.5 rounded-lg border transition-all ${selectedMonth === month
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-md'
+                      ? 'bg-linear-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-md'
                       : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
                     }`}
                 >
@@ -522,7 +522,7 @@ export default function BulkInvoiceModal({
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+              <div className="p-4 bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-gray-800">Amount per Student:</span>
                   <span className="text-xl font-bold text-blue-600">
@@ -534,7 +534,7 @@ export default function BulkInvoiceModal({
                 </div>
               </div>
 
-              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+              <div className="p-4 bg-linear-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-gray-800">Bulk Total Amount:</span>
                   <span className="text-xl font-bold text-green-600">
@@ -561,7 +561,7 @@ export default function BulkInvoiceModal({
 
           {/* Generated Invoices Preview */}
           {invoiceData && (
-            <div className="mb-8 p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+            <div className="mb-8 p-5 bg-linear-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
               <h3 className="font-bold text-green-800 mb-4 flex items-center gap-2">
                 <CheckCircle size={20} />
                 Bulk Invoices Generated Successfully
@@ -606,7 +606,7 @@ export default function BulkInvoiceModal({
                 {invoiceData.zipUrl ? (
                   <button
                     onClick={() => window.open(invoiceData.zipUrl, '_blank')}
-                    className="flex-1 min-w-[120px] px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 min-w-[120px] px-4 py-2.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors flex items-center justify-center gap-2"
                   >
                     <Download size={16} />
                     Download All (ZIP)
@@ -615,7 +615,7 @@ export default function BulkInvoiceModal({
                   <>
                     <button
                       onClick={handleBulkDownload}
-                      className="flex-1 min-w-[120px] px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 min-w-[120px] px-4 py-2.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors flex items-center justify-center gap-2"
                     >
                       <Download size={16} />
                       Download All
@@ -627,7 +627,7 @@ export default function BulkInvoiceModal({
                           // Open first invoice for preview
                           window.open(invoiceData.downloadUrls[0], '_blank');
                         }}
-                        className="flex-1 min-w-[120px] px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-colors flex items-center justify-center gap-2"
+                        className="flex-1 min-w-[120px] px-4 py-2.5 bg-linear-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-colors flex items-center justify-center gap-2"
                       >
                         <FileText size={16} />
                         Preview First
@@ -673,7 +673,7 @@ export default function BulkInvoiceModal({
               <button
                 onClick={handleGenerateBulkInvoices}
                 disabled={generating || !selectedMonth}
-                className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                className="px-8 py-2.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
               >
                 {generating ? (
                   <>
@@ -693,7 +693,7 @@ export default function BulkInvoiceModal({
                   handleReset();
                   onClose();
                 }}
-                className="px-8 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all flex items-center gap-2 shadow-md hover:shadow-lg"
+                className="px-8 py-2.5 bg-linear-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all flex items-center gap-2 shadow-md hover:shadow-lg"
               >
                 <CheckCircle size={16} />
                 Done

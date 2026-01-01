@@ -91,10 +91,6 @@ export default function DefaultersPage() {
     }).format(amount);
   };
 
-  const getCampusName = (id) => {
-    const campus = campuses.find(c => c._id === id);
-    return campus ? campus.name : 'Unknown Campus';
-  };
 
   const getStatusBadge = (status) => {
     switch(status) {

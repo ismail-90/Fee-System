@@ -359,7 +359,7 @@ const handleViewDetails = async (student) => {
                   <button
                     onClick={handleExportAllStudents}
                     disabled={exporting || students.length === 0}
-                    className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {exporting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -374,7 +374,7 @@ const handleViewDetails = async (student) => {
                     <button
                       onClick={handleExportFilteredStudents}
                       disabled={exporting || filteredStudents.length === 0}
-                      className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white px-4 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center gap-2 bg-linear-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white px-4 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {exporting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -389,7 +389,7 @@ const handleViewDetails = async (student) => {
                 {/* Create Student Button */}
                 <button
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="flex items-center gap-2 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   <PlusCircle size={18} />
                   Create Student
@@ -399,7 +399,7 @@ const handleViewDetails = async (student) => {
                 {selectedStudents.length > 0 && (
                   <button
                     onClick={() => setIsBulkInvoiceModalOpen(true)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                    className="flex items-center gap-2 bg-linear-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
                   >
                     <FileText size={18} />
                     Bulk Invoice ({selectedStudents.length})
@@ -420,8 +420,8 @@ const handleViewDetails = async (student) => {
                       onClick={() => setIsDeleteModalOpen(true)}
                       className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg
                         ${allInactive
-                          ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
-                          : "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
+                          ? "bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                          : "bg-linear-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
                         }`}
                     >
                       {allInactive ? <CheckCircle size={18} /> : <Trash2 size={18} />}

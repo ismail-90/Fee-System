@@ -47,9 +47,6 @@ export default function AccountantDashboard() {
           </div>
 
           <DashboardCards />
-          
- 
-
         </div>
       </div>
     </AppLayout>

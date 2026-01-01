@@ -363,7 +363,7 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-700 text-white p-6 rounded-t-2xl flex justify-between items-center">
+        <div className="sticky top-0 bg-linear-to-r from-blue-600 to-purple-700 text-white p-6 rounded-t-2xl flex justify-between items-center">
           <div className="flex items-center gap-3">
             <PlusCircle className="h-8 w-8" />
             <div>
@@ -744,7 +744,7 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-700 text-white rounded-lg hover:from-blue-700 hover:to-purple-800 transition-all font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-3 bg-linear-to-r from-blue-600 to-purple-700 text-white rounded-lg hover:from-blue-700 hover:to-purple-800 transition-all font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {submitting ? "Creating..." : "Create Student"}

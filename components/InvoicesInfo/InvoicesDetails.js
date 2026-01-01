@@ -11,10 +11,12 @@ import {
   Loader2,
   FileText,
   Calendar,
-  User
+  User,
+  Users
 } from "lucide-react";
-import { getInvoicesByStatusAPI, payInvoiceAPI } from "../../Services/invoiceService";
+import { getInvoicesByStatusAPI, payInvoiceAPI, getBulkInvoicesAPI } from "../../Services/invoiceService";
 import AppLayout from "../AppLayout";
+
 
 export default function InvoicesDetails() {
   const { user, loading } = useAuth();
@@ -28,9 +30,18 @@ export default function InvoicesDetails() {
 
   // Payment modal
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [paymentAmount, setPaymentAmount] = useState({});
-  const [processingPayment, setProcessingPayment] = useState(false);
+const [selectedInvoice, setSelectedInvoice] = useState(null);
+const [paymentAmount, setPaymentAmount] = useState({});
+const [processingPayment, setProcessingPayment] = useState(false);
+  const calculateTotal = (amounts) => {
+  const total = Object.keys(amounts).reduce((sum, key) => {
+    if (key !== 'total' && amounts[key]) {
+      return sum + (Number(amounts[key]) || 0);
+    }
+    return sum;
+  }, 0);
+  return total;
+};
 
   // 🔐 AUTH GUARD
   useEffect(() => {
@@ -68,58 +79,75 @@ export default function InvoicesDetails() {
     );
     setFilteredInvoices(filtered);
   }, [searchTerm, invoices]);
+const handleFeeChange = (key, value) => {
+  const numValue = Number(value) || 0;
+  setPaymentAmount(prev => {
+    const updated = { ...prev, [key]: numValue };
+    // Auto-calculate total
+    updated.total = calculateTotal(updated);
+    return updated;
+  });
+};
 
-  const handlePayInvoice = (invoice) => {
-    setSelectedInvoice(invoice);
+const handlePayInvoice = (invoice) => {
+  setSelectedInvoice(invoice);
 
-    setPaymentAmount({
-      total: invoice.feeId?.total || "",
-      tutionFee: invoice.feeId?.tutionFee || 0,
-      examFee: invoice.feeId?.examFee || 0,
-      labFee: invoice.feeId?.labFee || 0,
-      karateFee: invoice.feeId?.karateFee || 0,
-      lateFeeFine: invoice.feeId?.lateFeeFine || 0,
-    });
-
-    setShowPaymentModal(true);
+  // Initialize with invoice fee breakdown
+  const initialAmounts = {
+    tutionFee: invoice.feeId?.tutionFee || 0,
+    examFee: invoice.feeId?.examFee || 0,
+    labFee: invoice.feeId?.labFee || 0,
+    karateFee: invoice.feeId?.karateFee || 0,
+    lateFeeFine: invoice.feeId?.lateFeeFine || 0,
+    total: 0 // Will be calculated
   };
 
-  const handleSubmitPayment = async () => {
-    if (!selectedInvoice) return;
+  // Calculate initial total
+  initialAmounts.total = calculateTotal(initialAmounts);
 
-    const totalAmount = Number(paymentAmount.total || 0);
+  setPaymentAmount(initialAmounts);
+  setShowPaymentModal(true);
+};
 
-    if (totalAmount <= 0) {
-      alert("Please enter a valid total amount");
-      return;
+const handleSubmitPayment = async () => {
+  if (!selectedInvoice) return;
+
+  const totalAmount = Number(paymentAmount.total || 0);
+
+  if (totalAmount <= 0) {
+    alert("Please enter payment amount in individual fields");
+    return;
+  }
+
+  setProcessingPayment(true);
+
+  try {
+    const paymentData = {
+      invoiceId: selectedInvoice.invoiceId,
+      amount: totalAmount, // auto-calculated total
+      paymentBreakdown: { ...paymentAmount } // individual fees
+    };
+
+    const response = await payInvoiceAPI(paymentData);
+
+    if (response.success) {
+      alert("✅ Payment successful!");
+      setShowPaymentModal(false);
+      setPaymentAmount({});
+      setSelectedInvoice(null);
+      fetchInvoices();
+    } else {
+      alert(response.message || "Payment failed");
     }
+  } catch (err) {
+    alert(err.response?.data?.message || "Payment failed");
+  } finally {
+    setProcessingPayment(false);
+  }
+};
+ 
 
-    setProcessingPayment(true);
-
-    try {
-      const paymentData = {
-        invoiceId: selectedInvoice.invoiceId,
-        amount: totalAmount, // user-entered total
-        paymentBreakdown: { ...paymentAmount } // individual fees
-      };
-
-      const response = await payInvoiceAPI(paymentData);
-
-      if (response.success) {
-        alert("✅ Payment successful!");
-        setShowPaymentModal(false);
-        setPaymentAmount({});
-        setSelectedInvoice(null);
-        fetchInvoices();
-      } else {
-        alert(response.message || "Payment failed");
-      }
-    } catch (err) {
-      alert(err.response?.data?.message || "Payment failed");
-    } finally {
-      setProcessingPayment(false);
-    }
-  };
+  
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -195,6 +223,19 @@ export default function InvoicesDetails() {
                 Paid Invoices
               </div>
             </button>
+             <button
+    onClick={() => router.push('/accountant/bulk-invoices')}
+    className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-all ${
+      router.pathname === '/accountant/bulk-invoices'
+        ? "bg-white border-t border-l border-r border-gray-200 text-purple-600"
+        : "text-gray-500 hover:text-gray-700"
+    }`}
+  >
+    <div className="flex items-center gap-2">
+      <Users size={16} />
+      Bulk Invoices
+    </div>
+  </button>
            
           </div>
         </div>
@@ -247,7 +288,7 @@ export default function InvoicesDetails() {
                       <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
                     )}
                     <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                    {activeTab === "unpaid" && (
+                    {(activeTab === "unpaid" || activeTab === "partial") && (
                       <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                     )}
                   </tr>
@@ -301,32 +342,32 @@ export default function InvoicesDetails() {
                       {/* Status */}
                       <td className="p-4">
                         <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${invoice.paymentStatus === "paid" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
-                          {invoice.paymentStatus === "paid" ? invoice.paymentType : <>
-                            <XCircle className="mr-1" size={12} /> Unpaid
-                          </>}
+                          {invoice.paymentStatus}
                         </div>
                       </td>
 
                       {/* Actions */}
-                      {activeTab === "unpaid" && (
-                        <td className="p-4 flex items-center gap-2">
-                          <button
-                            onClick={() => downloadInvoice(invoice.invoiceUrl)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="View Invoice"
-                          >
-                            <Eye size={16} />
-                          </button>
-                          {invoice.paymentStatus === "unPaid" && (
-                            <button
-                              onClick={() => handlePayInvoice(invoice)}
-                              className="p-2 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1 text-xs font-medium px-3 py-2"
-                            >
-                              <CreditCard size={14} /> Pay
-                            </button>
-                          )}
-                        </td>
-                      )}
+                     {(activeTab === "unpaid" || activeTab === "partial") && (
+  <td className="p-4 flex items-center gap-2">
+    <button
+      onClick={() => downloadInvoice(invoice.invoiceUrl)}
+      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+      title="View Invoice"
+    >
+      <Eye size={16} />
+    </button>
+
+    {(invoice.paymentStatus === "unPaid" || invoice.paymentStatus === "partial") && (
+      <button
+        onClick={() => handlePayInvoice(invoice)}
+        className="p-2 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1 text-xs font-medium px-3 py-2"
+      >
+        <CreditCard size={14} /> Pay
+      </button>
+    )}
+  </td>
+)}
+
                     </tr>
                   ))}
                 </tbody>
@@ -336,114 +377,125 @@ export default function InvoicesDetails() {
         </div>
 
         {/* Payment Modal */}
-        {showPaymentModal && selectedInvoice && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl">
+       {showPaymentModal && selectedInvoice && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl">
+      
+      {/* Header - unchanged */}
+      <div className="flex items-center justify-between px-6 py-4 border-b">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green-100 rounded-xl">
+            <CreditCard className="text-green-600" size={22} />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">Invoice Payment</h3>
+            <p className="text-xs text-gray-500">Enter payment details - Total will auto-calculate</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowPaymentModal(false)}
+          className="p-2 rounded-lg hover:bg-gray-100"
+          disabled={processingPayment}
+        >✕</button>
+      </div>
 
-              {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 rounded-xl">
-                    <CreditCard className="text-green-600" size={22} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">Invoice Payment</h3>
-                    <p className="text-xs text-gray-500">Enter payment details</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowPaymentModal(false)}
-                  className="p-2 rounded-lg hover:bg-gray-100"
-                  disabled={processingPayment}
-                >✕</button>
-              </div>
+      {/* Body */}
+      <div className="p-6 space-y-6">
+        {/* Invoice ID - unchanged */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Invoice ID</label>
+          <input
+            value={selectedInvoice.invoiceId}
+            readOnly
+            className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-600"
+          />
+        </div>
 
-              {/* Body */}
-              <div className="p-6 space-y-6">
-                {/* Invoice ID */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Invoice ID</label>
-                  <input
-                    value={selectedInvoice.invoiceId}
-                    readOnly
-                    className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-600"
-                  />
-                </div>
-
-                {/* Total Amount (user input) */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Total Amount</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rs</span>
-                    <input
-                      type="number"
-                      min="0"
-                      value={paymentAmount.total || ""}
-                      onChange={(e) => setPaymentAmount(prev => ({ ...prev, total: Number(e.target.value) }))}
-                      className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Individual Fees (optional) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[
-                    { key: "tutionFee", label: "Tuition Fee" },
-                    { key: "examFee", label: "Exam Fee" },
-                    { key: "labFee", label: "Lab Fee" },
-                    { key: "karateFee", label: "Karate Fee" },
-                    { key: "lateFeeFine", label: "Late Fee Fine" },
-                  ].map(({ key, label }) => (
-                    <div key={key} className="relative">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rs</span>
-                        <input
-                          type="number"
-                          min="0"
-                          value={paymentAmount[key] || selectedInvoice.feeId?.[key] || ""}
-                          onChange={(e) =>
-                            setPaymentAmount(prev => ({ ...prev, [key]: Number(e.target.value) }))
-                          }
-                          className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="flex justify-end gap-3 px-6 py-4 border-t">
-                <button
-                  onClick={() => setShowPaymentModal(false)}
-                  className="px-5 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
-                  disabled={processingPayment}
-                >
-                  Cancel
-                </button>
-
-                <button
-                  onClick={handleSubmitPayment}
-                  disabled={processingPayment}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center gap-2 disabled:opacity-50"
-                >
-                  {processingPayment ? (
-                    <>
-                      <Loader2 className="animate-spin" size={16} />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard size={16} /> Pay Now
-                    </>
-                  )}
-                </button>
-              </div>
-
+        {/* Total Amount (auto-calculated, read-only) */}
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="text-xs font-medium text-gray-600 mb-1">Total Amount to Pay</div>
+              <div className="text-xs text-gray-500">This amount is auto-calculated from the fields below</div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-green-600">Rs. {paymentAmount.total?.toLocaleString() || "0"}</div>
+              <div className="text-xs text-gray-500">Auto-calculated</div>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* Individual Fees */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="text-sm font-medium text-gray-700">Enter individual fee amounts:</div>
+            <div className="text-xs text-gray-500">Total fee: Rs. {selectedInvoice.totalFee?.toLocaleString()}</div>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { key: "tutionFee", label: "Tuition Fee" },
+              { key: "examFee", label: "Exam Fee" },
+              { key: "labFee", label: "Lab Fee" },
+              { key: "karateFee", label: "Karate Fee" },
+              { key: "lateFeeFine", label: "Late Fee Fine" },
+            ].map(({ key, label }) => (
+              <div key={key} className="relative">
+                <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rs</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={selectedInvoice.feeId?.[key] || 0}
+                    value={paymentAmount[key] || ""}
+                    onChange={(e) => handleFeeChange(key, e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    placeholder="Enter amount"
+                  />
+                </div>
+                {selectedInvoice.feeId?.[key] > 0 && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    Due: Rs. {selectedInvoice.feeId?.[key]?.toLocaleString()}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer - unchanged */}
+      <div className="flex justify-end gap-3 px-6 py-4 border-t">
+        <button
+          onClick={() => setShowPaymentModal(false)}
+          className="px-5 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+          disabled={processingPayment}
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={handleSubmitPayment}
+          disabled={processingPayment || paymentAmount.total <= 0}
+          className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+        >
+          {processingPayment ? (
+            <>
+              <Loader2 className="animate-spin" size={16} />
+              Processing...
+            </>
+          ) : (
+            <>
+              <CreditCard size={16} /> Pay Rs. {paymentAmount.total?.toLocaleString()}
+            </>
+          )}
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
 
       </div>
     </AppLayout>

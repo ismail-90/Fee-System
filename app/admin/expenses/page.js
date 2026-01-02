@@ -9,7 +9,6 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);

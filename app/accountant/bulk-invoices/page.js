@@ -17,7 +17,6 @@ import AppLayout from "../../../components/AppLayout";
 export default function BulkInvoicesPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-
   const [bulkInvoices, setBulkInvoices] = useState([]);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -250,10 +249,10 @@ export default function BulkInvoicesPage() {
                       {/* Status */}
                       <td className="p-4">
                         <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${invoice.paymentStatus === "paid"
-                            ? "bg-green-100 text-green-800"
-                            : invoice.paymentStatus === "partial"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
+                          ? "bg-green-100 text-green-800"
+                          : invoice.paymentStatus === "partial"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
                           }`}>
                           {invoice.paymentStatus || "unPaid"}
                         </div>
@@ -279,7 +278,6 @@ export default function BulkInvoicesPage() {
                             <Download size={14} />
                           </button>
 
-                          {/* Extra Students Button (اگر 3 سے زیادہ ہوں) */}
                           {invoice.totalStudents > 3 && (
                             <button
                               onClick={() => {

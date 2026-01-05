@@ -18,13 +18,11 @@ export default function ReportsDetails() {
   const fetchReport = async () => {
     try {
       setLoading(true);
-      // Simulating API call with your provided JSON for testing if needed
-      // const response = mockResponse; 
       const response = await getDailyReportAPI(formData);
       setReportData(response);
     } catch (error) {
       console.error(error);
-      alert("Report load nahi ho saka");
+      alert("Report generation failed. Please try again.");
     } finally {
       setLoading(false);
     }

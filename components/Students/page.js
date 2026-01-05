@@ -23,7 +23,7 @@ import { createStudentAPI, deleteMultipleStudentsAPI } from "../../Services/stud
 import BulkDeleteModal from "./BulkDeleteModal";
 import BulkInvoiceModal from "./BulkInvoiceModal";
 import { getStudentRecordByIdAPI } from "../../Services/studentService";
-import { exportStudentsToExcel, exportFilteredStudentsToExcel } from "../../Services/exportService"; // Add this import
+import { exportStudentsToExcel, exportFilteredStudentsToExcel } from "../../Services/exportService";
 
 export default function StudentsPage() {
   const [selectedStudents, setSelectedStudents] = useState([]);
@@ -51,7 +51,9 @@ export default function StudentsPage() {
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [isFeeSlipModalOpen, setIsFeeSlipModalOpen] = useState(false);
   const [selectedStudentForSlip, setSelectedStudentForSlip] = useState(null);
-  const [exporting, setExporting] = useState(false); // Add this state
+  const [exporting, setExporting] = useState(false);
+  const [studentRecordMap, setStudentRecordMap] = useState({}); // New: Store records by studentId
+  const [loadingStudentRecord, setLoadingStudentRecord] = useState(false); // New: Loading state
   
   const selectedStudentObjects = students.filter(student =>
     selectedStudents.includes(student.studentId)
@@ -125,20 +127,34 @@ export default function StudentsPage() {
 
     fetchStudents();
   }, [selectedClass]);
-const [studentRecord, setStudentRecord] = useState(null);
 
-// Detail modal open karne se pehle data fetch karein:
-const handleViewDetails = async (student) => {
-  setSelectedStudent(student);
-  setIsDetailModalOpen(true);
-  
-  try {
-    const record = await getStudentRecordByIdAPI(student.studentId);
-    setStudentRecord(record);
-  } catch (error) {
-    console.error("Error fetching student record:", error);
-  }
-};
+  // Detail modal open karne se pehle data fetch karein:
+  const handleViewDetails = async (student) => {
+    setSelectedStudent(student);
+    setIsDetailModalOpen(true);
+    setLoadingStudentRecord(true);
+    
+    try {
+      // Check if record already exists in map
+      if (studentRecordMap[student.studentId]) {
+        setLoadingStudentRecord(false);
+        return;
+      }
+      
+      const record = await getStudentRecordByIdAPI(student.studentId);
+      
+      // Store record in map with studentId as key
+      setStudentRecordMap(prev => ({
+        ...prev,
+        [student.studentId]: record
+      }));
+    } catch (error) {
+      console.error("Error fetching student record:", error);
+    } finally {
+      setLoadingStudentRecord(false);
+    }
+  };
+
   // Add Export Functions
   const handleExportAllStudents = async () => {
     try {
@@ -322,8 +338,6 @@ const handleViewDetails = async (student) => {
     currentPage * itemsPerPage
   );
 
-  
-
   const handleEditStudent = (student) => {
     alert(`Edit student: ${student.studentName}`);
   };
@@ -484,22 +498,24 @@ const handleViewDetails = async (student) => {
           setCurrentPage={setCurrentPage}
           handleViewDetails={handleViewDetails}
           handleEditStudent={handleEditStudent}
-          handleExportData={() => handleExportFilteredStudents()} // Updated
+          handleExportData={() => handleExportFilteredStudents()}
           handleGenerateFeeSlip={handleGenerateFeeSlip}
           selectedStudents={selectedStudents}
           onSelectStudent={handleSelectStudent}
           onSelectAll={handleSelectAll}
-          exporting={exporting} // Pass exporting state
+          exporting={exporting}
         />
       </div>
 
       <StudentDetailModal
-  isOpen={isDetailModalOpen}
-  onClose={() => setIsDetailModalOpen(false)}
-  student={selectedStudent}
-  studentRecord={studentRecord}
-  onEdit={handleEditStudent}
-/>
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        student={selectedStudent}
+        studentRecord={selectedStudent ? studentRecordMap[selectedStudent.studentId] : null}
+        onEdit={handleEditStudent}
+        loading={loadingStudentRecord}
+      />
+      
       <CreateStudentModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

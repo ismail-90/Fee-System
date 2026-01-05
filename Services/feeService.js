@@ -56,10 +56,3 @@ export const addExpenseAPI = async (data) => {
   const response = await api.post("/expenses/create", data);
   return response.data;
 };
-
-
-// Get All Classes
-// export const getAllClassesAPI = async () => {
-//   const response = await api.get("/global/classes");
-//   return response.data;
-// };

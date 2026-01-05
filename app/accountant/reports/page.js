@@ -1,6 +1,6 @@
 'use client';
 
- import ReportsDetails from "../../../components/Reports/ReportsDetails";
+import ReportsDetails from "../../../components/Reports/ReportsDetails";
 
 export default function ReportPage() {
   

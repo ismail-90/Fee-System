@@ -28,6 +28,7 @@ export default function ActionDropdown({
         className="p-2 bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
       >
         <MoreVertical size={16} />
+        
       </button>
       
       {dropdownOpen && (
@@ -42,10 +43,10 @@ export default function ActionDropdown({
             <Eye size={16} />
             <div>
               <div className="font-medium">View Details</div>
-              <div className="text-xs text-gray-500">Complete student information</div>
+              <div className="text-xs text-gray-500">Complete Student Information</div>
             </div>
           </button>
-          
+
           <button
             onClick={() => {
               onGenerateFeeSlip(student);
@@ -91,6 +92,7 @@ export default function ActionDropdown({
           </button>
         </div>
       )}
+
     </div>
   );
 }

@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"; // Added these
+import { useQuery, useQueryClient } from "@tanstack/react-query"; // Added these
 import {
   Search, Eye, CreditCard, CheckCircle, XCircle,
   Loader2, FileText, User, Users, AlertCircle
@@ -172,7 +172,7 @@ export default function InvoicesDetails() {
                 </div>
               </button>
             ))}
-            <button onClick={() => router.push("/accountant/bulk-invoices")} className="cursor-pointer px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap ml-auto">
+            <button onClick={() => router.push("/accountant/bulk-invoices")} className="cursor-pointer px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">
               <Users size={16} className="inline mr-1" /> Bulk Invoices
             </button>
           </div>

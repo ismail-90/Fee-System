@@ -41,9 +41,16 @@ export const updateAccountantAPI = async (accountantId, data) => {
   const response = await api.put(`/accountant/update/${accountantId}`, data);
   return response.data;
 };
+
 // delete accountant
 export const deleteAccountantAPI = async (accountantId) => {
   const response = await api.delete(`/accountant/delete/${accountantId}`);
   return response.data;
 };
+
+//get single campus details
+export const getCampusDetailsAPI = async (campusId) => {
+  const response = await api.get(`/global/dashboardSummary/${campusId}`);
+  return response.data;
+}
 

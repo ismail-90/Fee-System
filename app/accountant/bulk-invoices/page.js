@@ -12,7 +12,7 @@ import {
   RefreshCw,
   Printer
 } from "lucide-react";
-import { getBulkInvoicesAPI } from "../../../services/invoiceService";
+import { getBulkInvoicesAPI } from "../../../Services/invoiceService";
 import AppLayout from "../../../components/AppLayout";
 
 export default function BulkInvoicesPage() {

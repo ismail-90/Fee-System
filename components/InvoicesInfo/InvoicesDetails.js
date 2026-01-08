@@ -25,21 +25,21 @@ export default function InvoicesDetails() {
   const [maxFeeLimits, setMaxFeeLimits] = useState({});
   const [processingPayment, setProcessingPayment] = useState(false);
 
-  /* ================= FETCH DATA WITH REACT QUERY ================= */
+   
   const { 
     data: invoices = [], 
     isLoading: loadingInvoices, 
     isError,
     refetch 
   } = useQuery({
-    queryKey: ['invoices', activeTab], // Jab tab badlega, ye fetch karega
+    queryKey: ['invoices', activeTab],  
     queryFn: async () => {
       const status = activeTab === "unpaid" ? "unPaid" : activeTab === "paid" ? "paid" : "partial";
       const res = await getInvoicesByStatusAPI(status);
       return res.data || [];
     },
-    enabled: !!user, // Sirf login user k liye chalega
-    staleTime: 5 * 60 * 1000, // 5 minute tak data cache rahega (loading nahi dikhayega dobara)
+    enabled: !!user, 
+    staleTime: 5 * 60 * 1000,  
   });
 
   /* ================= SEARCH FILTERING (Optimized) ================= */
@@ -91,6 +91,7 @@ export default function InvoicesDetails() {
       karateFeeCurrentPaid: breakdown.karateFee || 0,
       admissionFeeCurrentPaid: breakdown.admissionFee || 0,
       registrationFee: breakdown.registrationFee || 0,
+      preBalance: invoice.paymentDetails?.remainingBalance 
     };
     setMaxFeeLimits(limits);
     setPaymentAmount({ ...limits, total: calculateTotal(limits) });
@@ -115,7 +116,6 @@ export default function InvoicesDetails() {
         setShowPaymentModal(false);
         setPaymentAmount({});
         setSelectedInvoice(null);
-        // Data refresh karein cache clear kar k
         queryClient.invalidateQueries(['invoices']); 
       }
     } catch (err) {
@@ -140,6 +140,7 @@ export default function InvoicesDetails() {
     { key: "karateFeeCurrentPaid", label: "Karate Fee" },
     { key: "lateFeeFine", label: "Late Fee/Fine" },
     { key: "admissionFeeCurrentPaid", label: "Admission Fee" },
+    {key: "preBalance", label: "Remaining Balance" }
   ];
 
   if (authLoading) return <div className="min-h-screen flex justify-center items-center"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
@@ -266,7 +267,7 @@ export default function InvoicesDetails() {
           )}
         </div>
 
-        {/* MODAL (Same as your UI) */}
+        {/* MODAL */}
         {showPaymentModal && selectedInvoice && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
@@ -277,7 +278,11 @@ export default function InvoicesDetails() {
               <div className="p-6 overflow-y-auto custom-scrollbar">
                 <div className="bg-gradient-to-r from-gray-50 to-white p-4 rounded-xl border border-gray-200 mb-6 flex justify-between items-center shadow-sm">
                    <div><p className="text-xs text-gray-500 uppercase font-semibold">Total Payable</p><h2 className="text-2xl font-bold text-green-600 mt-1">Rs. {paymentAmount.total?.toLocaleString() || "0"}</h2></div>
-                   <div className="text-right"><p className="text-xs text-gray-500">Total Due</p><p className="text-sm font-semibold text-gray-700">Rs. {selectedInvoice.feeDetails?.allTotal?.toLocaleString()}</p></div>
+                   <div className="text-right"><p className="text-xs text-gray-500">Total Due</p><p className="text-sm font-semibold text-gray-700">Rs. {(
+  (selectedInvoice.paymentDetails?.remainingBalance || 0) +
+  (selectedInvoice.paymentDetails?.totalAmountPaid ||  0)
+).toLocaleString()}
+</p></div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
                   {feeInputFields.map(({ key, label }) => {

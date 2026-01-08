@@ -90,7 +90,6 @@ export default function BulkInvoiceModal({
 
   // Handle fee breakdown input change
   const handleBreakdownChange = (field, value) => {
-    // Allow empty string, numbers, and decimal values
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
       setFeeBreakdown(prev => ({
         ...prev,
@@ -186,18 +185,13 @@ export default function BulkInvoiceModal({
       alert("No invoices available for download");
       return;
     }
-
-    // If there's a zip file URL, download it directly
     if (invoiceData.zipUrl) {
       window.open(invoiceData.zipUrl, '_blank');
       return;
     }
-
-    // Otherwise, download each invoice individually
     try {
       for (const url of invoiceData.downloadUrls) {
         window.open(url, '_blank');
-        // Small delay to avoid overwhelming the browser
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     } catch (err) {

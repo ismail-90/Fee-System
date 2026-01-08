@@ -19,7 +19,7 @@ import { generateFeeReceiptAPI } from "../../Services/feeService";
 export default function FeeSlipModal({ isOpen, onClose, student }) {
   // State declarations
   const [feeMonth, setFeeMonth] = useState("");
-  const [feeMonthType, setFeeMonthType] = useState("single"); // "single" or "double"
+  const [feeMonthType, setFeeMonthType] = useState("single");
   const [secondMonth, setSecondMonth] = useState("");
   const [generatingSlip, setGeneratingSlip] = useState(false);
   const [slipData, setSlipData] = useState(null);
@@ -27,7 +27,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [showDoubleMonthSelector, setShowDoubleMonthSelector] = useState(false);
   
-  // Fee breakdown state - updated structure
+  // Fee breakdown state
   const [feeBreakdown, setFeeBreakdown] = useState({
     tuitionFee: 0,
     booksCharges: 0,
@@ -50,45 +50,71 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     arrears: 0
   });
 
-  const feeMonths = [
-    "January-2024", "February-2024", "March-2024", "April-2024", "May-2024", "June-2024",
-    "July-2024", "August-2024", "September-2024", "October-2024", "November-2024", "December-2024"
-  ];
+  // Dynamic months array based on current year
+  const [feeMonths, setFeeMonths] = useState([]);
+
+  // Get current year
+  const getCurrentYear = () => {
+    return new Date().getFullYear();
+  };
+
+  // Generate months array for current year
+  const generateMonthsForYear = (year) => {
+    const months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    
+    return months.map(month => `${month}-${year}`);
+  };
+
+  // Initialize months when component mounts
+  useEffect(() => {
+    const currentYear = getCurrentYear();
+    const months = generateMonthsForYear(currentYear);
+    setFeeMonths(months);
+    
+    // Set default month to current month if available
+    const currentMonthIndex = new Date().getMonth();
+    if (months[currentMonthIndex]) {
+      setFeeMonth(months[currentMonthIndex]);
+    } else if (months.length > 0) {
+      setFeeMonth(months[0]);
+    }
+  }, []);
 
   // Initialize with student's fee data
   useEffect(() => {
-    if (student) {
-      // Set fee month
+    if (student && feeMonths.length > 0) {
+      // Set fee month from student or current month
       if (student?.feeMonth) {
-        setFeeMonth(student.feeMonth || feeMonths[0]);
+        // Check if student's fee month exists in current year months
+        const studentMonthExists = feeMonths.some(month => 
+          month.toLowerCase().includes(student.feeMonth.toLowerCase())
+        );
+        
+        if (studentMonthExists) {
+          // Find the matching month
+          const matchingMonth = feeMonths.find(month => 
+            month.toLowerCase().includes(student.feeMonth.toLowerCase())
+          );
+          setFeeMonth(matchingMonth || feeMonths[0]);
+        } else {
+          setFeeMonth(feeMonths[0]);
+        }
       } else {
-        setFeeMonth(feeMonths[0]);
+        // Default to current month
+        const currentMonthIndex = new Date().getMonth();
+        setFeeMonth(feeMonths[currentMonthIndex] || feeMonths[0]);
       }
 
-      // Initialize fee breakdown from student data if available
+      // Initialize fee breakdown from student data
       setFeeBreakdown({
-        tuitionFee: student.tuitionFee || 0,
-        booksCharges: student.booksCharges || 0,
-        registrationFee: student.registrationFee || 0,
-        examFeeTotal: student.examFeeTotal || 0,
-        examFeeCurrentPaid: student.examFeeCurrentPaid || 0,
-        labFee: student.labFee || 0,
-        artCraftFee: student.artCraftFee || 0,
-        karateFeeTotal: student.karateFeeTotal || 0,
-        karateFeeCurrentPaid: student.karateFeeCurrentPaid || 0,
-        lateFeeFine: student.lateFeeFine || 0,
-        others: student.others || 0,
-        admissionFeeTotal: student.admissionFeeTotal || 0,
-        admissionFeeCurrentPaid: student.admissionFeeCurrentPaid || 0,
-        annualChargesTotal: student.annualChargesTotal || 0,
-        annualChargesPaid: student.annualChargesPaid || 0,
-        prevBal: student.prevBal || 0,
+        prevBal: student.curBalance || 0,
         feePaid: student.feePaid || 0,
-        miscFee: student.miscFee || 0,
-        arrears: student.arrears || 0
       });
     }
-  }, [student]);
+  }, [student, feeMonths]);
 
   // Helper functions
   const formatDate = (dateString) => {
@@ -145,14 +171,16 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     }
   };
 
-  // Format month string for API
-  const formatMonthString = (monthName) => {
+  // Format month string for API (remove year for API)
+  const formatMonthString = (monthWithYear) => {
+    // Extract month name only (remove year)
+    const monthName = monthWithYear.split('-')[0];
     return monthName.toLowerCase();
   };
 
   // Get available months for second selection
   const getAvailableSecondMonths = () => {
-    if (!feeMonth) return feeMonths;
+    if (!feeMonth || feeMonths.length === 0) return [];
     const currentIndex = feeMonths.indexOf(feeMonth);
     return feeMonths.slice(currentIndex + 1);
   };
@@ -162,6 +190,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     setFeeMonth(month);
     if (feeMonthType === "double") {
       setFeeMonthType("single");
+      setSecondMonth("");
     }
   };
 
@@ -173,15 +202,17 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     const currentIndex = feeMonths.indexOf(feeMonth);
     if (currentIndex < feeMonths.length - 1) {
       setSecondMonth(feeMonths[currentIndex + 1]);
+    } else if (feeMonths.length > 0) {
+      setSecondMonth(feeMonths[0]);
     }
   };
 
   // Get display month text
   const getMonthDisplayText = () => {
     if (feeMonthType === "single") {
-      return feeMonth;
+      return feeMonth || "Select Month";
     } else {
-      return `${feeMonth} & ${secondMonth}`;
+      return secondMonth ? `${feeMonth} & ${secondMonth}` : `${feeMonth} & Select Second Month`;
     }
   };
 
@@ -192,6 +223,12 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     } else {
       return `${formatMonthString(feeMonth)},${formatMonthString(secondMonth)}`;
     }
+  };
+
+  // Get month name only (without year) for display
+  const getMonthName = (monthWithYear) => {
+    if (!monthWithYear) return "";
+    return monthWithYear.split('-')[0];
   };
 
   // API Functions
@@ -218,9 +255,10 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     try {
       const feeData = {
         studentId: student.studentId,
-        feeMonth: getApiMonthString(), // Use formatted month string
+        feeMonth: getApiMonthString(),
         feeBreakdown: feeBreakdown,
-        monthType: feeMonthType // Add month type to data
+        monthType: feeMonthType,
+        year: getCurrentYear() // Send current year to API
       };
 
       const response = await generateFeeReceiptAPI(feeData);
@@ -249,7 +287,9 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const monthText = feeMonthType === "single" ? feeMonth : `${feeMonth}-${secondMonth}`;
+        const monthText = feeMonthType === "single" ? 
+          feeMonth : 
+          `${getMonthName(feeMonth)}-${getMonthName(secondMonth)}-${getCurrentYear()}`;
         a.download = `Fee-Slip-${student?.studentName || 'student'}-${monthText}.pdf`;
         document.body.appendChild(a);
         a.click();
@@ -317,15 +357,32 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
   // Early return
   if (!isOpen || !student) return null;
 
+  // Show loading if months not initialized
+  if (feeMonths.length === 0) {
+    return (
+      <div className="fixed inset-0 z-60 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl p-8 flex items-center justify-center">
+          <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+          <span className="ml-3">Loading months...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-60 bg-black bg-opacity-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
           <div className="flex gap-4">
             <h2 className="text-2xl font-bold text-gray-800">Generate Fee Slip</h2>
-            <p className="text-gray-600 mt-1">
-              For: {student.studentName} (Class {student.className})
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-gray-600 mt-1">
+                For: {student.studentName} (Class {student.className})
+              </p>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Year: {getCurrentYear()}
+              </span>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -372,6 +429,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                 onClick={() => {
                   setFeeMonthType("single");
                   setShowDoubleMonthSelector(false);
+                  setSecondMonth("");
                 }}
                 className={`px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
                   feeMonthType === "single"
@@ -411,7 +469,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                         : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
                       }`}
                   >
-                    <div className="font-medium">{month.split('-')[0].substring(0, 3)}</div>
+                    <div className="font-medium">{getMonthName(month)}</div>
                     <div className="text-xs opacity-75">{month.split('-')[1]}</div>
                   </button>
                 ))}
@@ -437,7 +495,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                               : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
                           }`}
                         >
-                          <div className="font-medium">{month.split('-')[0].substring(0, 3)}</div>
+                          <div className="font-medium">{getMonthName(month)}</div>
                           <div className="text-xs opacity-75">{month.split('-')[1]}</div>
                         </button>
                       ))}
@@ -459,7 +517,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                               : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
                           }`}
                         >
-                          <div className="font-medium">{month.split('-')[0].substring(0, 3)}</div>
+                          <div className="font-medium">{getMonthName(month)}</div>
                           <div className="text-xs opacity-75">{month.split('-')[1]}</div>
                         </button>
                       ))}
@@ -470,6 +528,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
             )}
           </div>
 
+          {/* Rest of your component remains the same... */}
           {/* Fee Breakdown Section */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -983,6 +1042,9 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                   Double Month
                 </span>
               )}
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">
+                Year: {getCurrentYear()}
+              </span>
               {slipData && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">
                   ✓ Generated

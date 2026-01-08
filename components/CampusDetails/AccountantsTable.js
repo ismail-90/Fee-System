@@ -3,7 +3,6 @@ import { Users, Eye, Edit, XCircle } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
 const AccountantsTable = ({ 
-  accountants, 
   filteredAccountants, 
   loading, 
   searchTerm,

@@ -1,10 +1,8 @@
 'use client';
-import { useState } from 'react';
 import { Building, Edit, Trash2, Eye } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
 const CampusesTable = ({ 
-  campuses, 
   filteredCampuses, 
   loading, 
   searchTerm,

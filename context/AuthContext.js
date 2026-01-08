@@ -8,7 +8,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  /* 🔹 Initialize Auth (ONCE) */
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem("token");
@@ -18,8 +17,6 @@ export function AuthProvider({ children }) {
         try {
           const parsedUser = JSON.parse(savedUser);
           setUser(parsedUser);
-
-          // 🔥 FETCH FULL PROFILE (campus yahan se ayega)
           const profileRes = await getProfileAPI();
 
           const fullUser = {

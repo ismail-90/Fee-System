@@ -9,8 +9,7 @@ import {
   Calendar,
   FileText,
   Loader2,
-  RefreshCw,
-  Printer
+  RefreshCw
 } from "lucide-react";
 import { getBulkInvoicesAPI } from "../../../Services/invoiceService";
 import AppLayout from "../../../components/AppLayout";

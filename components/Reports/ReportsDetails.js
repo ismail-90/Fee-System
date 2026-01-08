@@ -206,7 +206,6 @@ export default function ReportsDetails() {
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {reportData.studentWiseCollection.map((student, index) => {
-                                // Calculate "Others" by subtracting main fees from total or summing minor keys
                                 const details = student.feeDetails;
                                 const otherFees = (details.registrationFee || 0) + (details.labFee || 0) + (details.artCraftFee || 0) + (details.karateFee || 0) + (details.lateFeeFine || 0);
 

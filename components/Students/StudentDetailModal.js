@@ -5,7 +5,6 @@ export default function StudentDetailModal({
   isOpen,
   onClose,
   student,
-  onEdit,
   studentRecord,
   loading = false
 }) {

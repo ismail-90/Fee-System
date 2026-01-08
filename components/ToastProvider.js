@@ -1,4 +1,3 @@
-// app/components/ToastProvider.js (agar nahi hai to create karein)
 'use client';
 import { Toaster } from 'react-hot-toast';
 
@@ -34,4 +33,3 @@ export default function ToastProvider({ children }) {
   );
 }
 
-// layout.js mein wrap karein

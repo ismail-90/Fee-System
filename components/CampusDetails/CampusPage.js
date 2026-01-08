@@ -9,8 +9,7 @@ import {
   Loader2,
   X,
   CheckCircle,
-  AlertCircle,
-  Users
+  AlertCircle
 } from 'lucide-react';
 import {
   createCampusAPI,

@@ -128,7 +128,6 @@ export default function StudentsPage() {
     fetchStudents();
   }, [selectedClass]);
 
-  // Detail modal open karne se pehle data fetch karein:
   const handleViewDetails = async (student) => {
     setSelectedStudent(student);
     setIsDetailModalOpen(true);

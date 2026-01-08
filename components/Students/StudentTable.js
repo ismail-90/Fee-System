@@ -15,7 +15,7 @@ export default function StudentTable({
   selectedStudents = [],
   onSelectStudent,
   onSelectAll,
-  onItemsPerPageChange // نیا prop شامل کریں
+  onItemsPerPageChange 
 }) {
   const calculateTotalPaid = (student) => student.feePaid || 0;
   const calculateTotalDue = (student) => student.curBalance || 0;

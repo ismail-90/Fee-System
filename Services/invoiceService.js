@@ -29,3 +29,9 @@ export const getBulkInvoicesAPI = async () => {
   const response = await api.get(`/global/bulk-invoices`);
   return response.data;
 }
+
+//pay old balance.
+export const payOldBalanceAPI = async (paymentData) => {
+  const response = await api.post(`/global/pay-balanced-amount`, paymentData);
+  return response.data;
+}

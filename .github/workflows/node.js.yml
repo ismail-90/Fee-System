@@ -1,168 +1,75 @@
-name: 🚀 Deploy Frontend to portal.remsc.org
+name:  Deploy Frontend - portal.remsc.org
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 env:
   NODE_VERSION: '18'
-  DEPLOY_PATH: '/var/www/portal'
 
 jobs:
   build-and-deploy:
-    runs-on: [self-hosted, frontend]
+    runs-on: self-hosted
     
     steps:
-    - name: 📦 Checkout code
+    - name:  Checkout code
       uses: actions/checkout@v3
 
-    - name: ⚙️ Setup Node.js
+    - name:  Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
 
-    - name: 📥 Install dependencies
-      run: |
-        npm ci
-        echo "✅ Dependencies installed successfully"
+    - name: Install dependencies
+      run: npm ci
 
-    - name: 🔧 Create environment configuration
+    - name:  Create .env.production
       run: |
-        # Create .env.production file
-        echo "REACT_APP_API_URL=https://api.remsc.org" > .env.production
-        echo "REACT_APP_ENV=production" >> .env.production
-        echo "PUBLIC_URL=/" >> .env.production
-        
-        # For Vue.js (uncomment if using Vue)
-        # echo "VUE_APP_API_URL=https://api.remsc.org" > .env.production
-        # echo "VUE_APP_ENV=production" >> .env.production
-        
-        # For Angular (uncomment if using Angular)
-        # echo "NG_APP_API_URL=https://api.remsc.org" > .env
-        # echo "NG_APP_ENV=production" >> .env
-        
-        echo "✅ Environment file created"
+        echo "NEXT_PUBLIC_API_URL=https://api.remsc.org" > .env.production
+        echo "NEXT_PUBLIC_SITE_URL=https://portal.remsc.org" >> .env.production
+        # Add other env variables as needed
 
-    - name: 🏗️ Build project
-      run: |
-        echo "Building frontend project..."
-        
-        # Check which build command works
-        if npm run build; then
-          echo "✅ Built with 'npm run build'"
-        elif npm run build:production; then
-          echo "✅ Built with 'npm run build:production'"
-        elif npm run build:prod; then
-          echo "✅ Built with 'npm run build:prod'"
-        else
-          echo "❌ No build script found"
-          exit 1
-        fi
-      env:
-        NODE_ENV: production
-        CI: false
+    - name:  Build Next.js application
+      run: npm run build
 
-    - name: 📂 Verify build output
+    - name: Create deployment directory
       run: |
-        echo "Build output directory:"
-        if [ -d "build" ]; then
-          echo "✅ Found 'build/' directory"
-          ls -la build/ | head -10
-          BUILD_DIR="build"
-        elif [ -d "dist" ]; then
-          echo "✅ Found 'dist/' directory"
-          ls -la dist/ | head -10
-          BUILD_DIR="dist"
-        elif [ -d "out" ]; then
-          echo "✅ Found 'out/' directory"
-          ls -la out/ | head -10
-          BUILD_DIR="out"
-        else
-          echo "⚠️ Looking for index.html..."
-          find . -name "index.html" -not -path "./node_modules/*" | head -5
-          BUILD_DIR=$(find . -name "index.html" -not -path "./node_modules/*" -exec dirname {} \; | head -1)
-          echo "Using directory: $BUILD_DIR"
-        fi
-        
-        echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+        sudo mkdir -p /var/www/portal.remsc.org
+        sudo chown -R $USER:$USER /var/www/portal.remsc.org
 
-    - name: 🚀 Deploy to server
+    - name:  Deploy to server
       run: |
-        echo "🚀 Starting deployment to portal.remsc.org..."
-        echo "Deploy path: ${{ env.DEPLOY_PATH }}"
-        
-        # Clean deployment directory
-        if [ -d "${{ env.DEPLOY_PATH }}" ]; then
-          echo "Cleaning existing files..."
-          sudo rm -rf ${{ env.DEPLOY_PATH }}/*
-        else
-          echo "Creating deployment directory..."
-          sudo mkdir -p ${{ env.DEPLOY_PATH }}
-        fi
-        
         # Copy build files
-        echo "Copying build files..."
-        if [ -d "$BUILD_DIR" ]; then
-          sudo cp -r $BUILD_DIR/* ${{ env.DEPLOY_PATH }}/
-          echo "✅ Copied from $BUILD_DIR/"
-        elif [ -n "$BUILD_DIR" ]; then
-          sudo cp -r $BUILD_DIR/* ${{ env.DEPLOY_PATH }}/
-          echo "✅ Copied from custom directory: $BUILD_DIR"
-        else
-          echo "❌ No build directory found"
-          exit 1
+        sudo cp -r .next/ /var/www/portal.remsc.org/
+        sudo cp -r public/ /var/www/portal.remsc.org/
+        sudo cp -r package.json /var/www/portal.remsc.org/
+        
+        # Copy standalone output if using standalone mode
+        if [ -d ".next/standalone" ]; then
+          sudo cp -r .next/standalone/* /var/www/portal.remsc.org/
         fi
         
-        # Set proper permissions
-        echo "Setting permissions..."
-        sudo chown -R frontend-runner:frontend-runner ${{ env.DEPLOY_PATH }}
-        sudo chmod -R 755 ${{ env.DEPLOY_PATH }}
-        
-        echo "✅ Deployment completed!"
+        # Copy static files
+        sudo cp -r .next/static /var/www/portal.remsc.org/.next/
 
-    - name: 🔄 Reload Nginx
+    - name:  Restart PM2 (if using Node.js server)
       run: |
-        echo "Reloading Nginx..."
-        sudo nginx -t && sudo systemctl reload nginx
-        echo "✅ Nginx reloaded successfully"
-
-    - name: ✅ Verify deployment
-      run: |
-        echo "Verifying deployment..."
-        
-        # Check if index.html exists
-        if [ -f "${{ env.DEPLOY_PATH }}/index.html" ]; then
-          echo "✅ index.html found"
-          echo "File size: $(wc -l < ${{ env.DEPLOY_PATH }}/index.html) lines"
+        cd /var/www/portal.remsc.org
+        pm2 delete portal-frontend 2>/dev/null || true
+       
+        if [ -f "server.js" ]; then
+          pm2 start layout.js --name "portal-frontend" --time
         else
-          echo "❌ index.html not found"
-          echo "Directory contents:"
-          ls -la ${{ env.DEPLOY_PATH }}/
+          echo " No layout.js found, using Nginx static serving"
         fi
         
-        # Test with curl
-        echo "Testing HTTP response..."
-        sleep 2
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost || echo "000")
-        if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "304" ]; then
-          echo "Server responding with HTTP $HTTP_CODE"
-        else
-          echo " Server responded with HTTP $HTTP_CODE"
-        fi
+        pm2 save 2>/dev/null || true
 
-    - name: 📊 Deployment summary
+    - name:  Verify deployment
       run: |
-        echo "========================================"
-        echo " FRONTEND DEPLOYMENT SUCCESSFUL!"
-        echo "========================================"
-        echo " Domain: portal.remsc.org"
-        echo " Deployed to: ${{ env.DEPLOY_PATH }}"
-        echo " Runner: frontend-droplet"
-        echo " User: frontend-runner"
-        echo " Trigger: ${{ github.event_name }}"
-        echo " Repository: ${{ github.repository }}"
-        echo " Time: $(date)"
-        echo "========================================"
+        echo "Frontend deployment completed!"
+        echo "Files deployed to: /var/www/portal.remsc.org"
+        ls -la /var/www/portal.remsc.org/

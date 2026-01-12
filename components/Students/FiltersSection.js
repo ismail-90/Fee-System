@@ -110,6 +110,8 @@ export default function FiltersSection({
               <option value="all">All Sessions</option>
               <option value="2023-2024">2023-2024</option>
               <option value="2024-2025">2024-2025</option>
+              <option value="2025-2026">2025-2026</option>
+              <option value="2026-2027">2026-2027</option>
             </select>
             <div className="absolute right-3 top-3 pointer-events-none">
               <Filter className="text-gray-400" size={20} />

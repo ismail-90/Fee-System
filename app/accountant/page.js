@@ -10,9 +10,8 @@ export default function AccountantDashboard() {
   const { user, loading } = useAuth(); // ✅ get loading
   const router = useRouter();
 
-  // 🔐 AUTH GUARD (FIXED)
   useEffect(() => {
-    if (loading) return; // ⛔ wait until auth resolved
+    if (loading) return; 
 
     if (!user) {
       router.push('/');

@@ -10,7 +10,7 @@ export default function ReportsDetails() {
 
   // Filter State
   const [filterType, setFilterType] = useState('today');
-  const [bfAmount, setBfAmount] = useState(3000);
+  const [bfAmount, setBfAmount] = useState(0);
   
   // Dynamic Date States
   const [specificDate, setSpecificDate] = useState(new Date().toISOString().split('T')[0]);

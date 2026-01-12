@@ -1,0 +1,75 @@
+name:  Deploy Frontend - portal.remsc.org
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+    
+    steps:
+    - name:  Checkout code
+      uses: actions/checkout@v3
+
+    - name:  Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name:  Create .env.production
+      run: |
+        echo "NEXT_PUBLIC_API_URL=https://api.remsc.org" > .env.production
+        echo "NEXT_PUBLIC_SITE_URL=https://portal.remsc.org" >> .env.production
+        # Add other env variables as needed
+
+    - name:  Build Next.js application
+      run: npm run build
+
+    - name: Create deployment directory
+      run: |
+        sudo mkdir -p /var/www/portal.remsc.org
+        sudo chown -R $USER:$USER /var/www/portal.remsc.org
+
+    - name:  Deploy to server
+      run: |
+        # Copy build files
+        sudo cp -r .next/ /var/www/portal.remsc.org/
+        sudo cp -r public/ /var/www/portal.remsc.org/
+        sudo cp -r package.json /var/www/portal.remsc.org/
+        
+        # Copy standalone output if using standalone mode
+        if [ -d ".next/standalone" ]; then
+          sudo cp -r .next/standalone/* /var/www/portal.remsc.org/
+        fi
+        
+        # Copy static files
+        sudo cp -r .next/static /var/www/portal.remsc.org/.next/
+
+    - name:  Restart PM2 (if using Node.js server)
+      run: |
+        cd /var/www/portal.remsc.org
+        pm2 delete portal-frontend 2>/dev/null || true
+       
+        if [ -f "server.js" ]; then
+          pm2 start layout.js --name "portal-frontend" --time
+        else
+          echo " No layout.js found, using Nginx static serving"
+        fi
+        
+        pm2 save 2>/dev/null || true
+
+    - name:  Verify deployment
+      run: |
+        echo "Frontend deployment completed!"
+        echo "Files deployed to: /var/www/portal.remsc.org"
+        ls -la /var/www/portal.remsc.org/

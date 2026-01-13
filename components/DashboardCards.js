@@ -27,20 +27,38 @@ import { getDashboardStatsAPI } from '../Services/dashboardService';
 
 
 const Card = ({ title, value, icon: Icon, color, onClick, isUploadCard = false, children }) => {
+  // Convert value to string to check length safely
+  const valueStr = String(value || '');
+  
+  // Dynamic font size logic: Jitna lamba number, utna chota font
+  const getValueStyle = () => {
+    if (isUploadCard) return 'text-lg font-semibold text-blue-600';
+    
+    // Agar length 15 characters se zyada hai (e.g. Rs.10,000,000) -> Small Font
+    if (valueStr.length > 15) return 'text-lg font-bold text-gray-900';
+    // Agar length 10-15 ke beech hai -> Medium Font
+    if (valueStr.length > 10) return 'text-xl font-bold text-gray-900';
+    // Normal length -> Large Font
+    return 'text-2xl font-bold text-gray-900';
+  };
+
   const cardContent = (
-    <div className={`bg-white rounded-xl shadow-sm p-6 border border-gray-100 ${isUploadCard ? 'cursor-pointer hover:shadow-md transition-shadow duration-200' : ''}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className={`mt-1 ${isUploadCard ? 'text-lg font-semibold text-blue-600' : 'text-2xl font-bold text-gray-900'}`}>
+    <div 
+      className={`bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-full flex flex-col justify-between ${isUploadCard ? 'cursor-pointer hover:shadow-md transition-shadow duration-200' : ''}`}
+      title={typeof value === 'string' ? value : ''} // Hover karne par full value dikhegi
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0 pr-2"> {/* min-w-0 text wrapping k liye zaroori hai */}
+          <p className="text-sm font-medium text-gray-600 truncate">{title}</p>
+          <p className={`mt-1 break-words leading-tight ${getValueStyle()}`}>
             {value}
           </p>
           {isUploadCard && (
             <p className="text-xs text-gray-500 mt-1">Click to upload CSV file</p>
           )}
         </div>
-        <div className={`p-3 rounded-full ${color}`}>
-          <Icon size={24} className="text-white" />
+        <div className={`p-3 rounded-full flex-shrink-0 ${color}`}>
+          <Icon size={20} className="text-white" />
         </div>
       </div>
       {children && <div className="mt-4">{children}</div>}
@@ -49,13 +67,24 @@ const Card = ({ title, value, icon: Icon, color, onClick, isUploadCard = false, 
 
   if (onClick) {
     return (
-      <button onClick={onClick} className="w-full text-left">
+      <button onClick={onClick} className="w-full text-left h-full">
         {cardContent}
       </button>
     );
   }
 
   return cardContent;
+};
+// Helper to shorten large numbers (e.g. 1.5M, 10k)
+const formatCompactNumber = (num) => {
+  if (!num && num !== 0) return '0';
+  return new Intl.NumberFormat('en-PK', {
+    notation: "compact",
+    compactDisplay: "short",
+    style: 'currency',
+    currency: 'PKR',
+    maximumFractionDigits: 1
+  }).format(num).replace('PKR', 'Rs.'); 
 };
 
 const BreakdownCard = ({ title, breakdown, loading }) => {
@@ -367,27 +396,27 @@ export default function DashboardCards({ onCSVUpload }) {
     },
     {
       title: 'Total Fee',
-      value: loadingStats ? 'Loading...' : `Rs.${(dashboardData.totalFee).toLocaleString()}`,
+      value: loadingStats ? 'Loading...' : formatCompactNumber(dashboardData.totalFee), 
       icon: DollarSign,
       color: 'bg-purple-500'
     },
     {
       title: 'Expenses',
-      value: loadingStats ? 'Loading...' : `Rs.${(dashboardData.totalExpenses).toLocaleString()}`,
+      value: loadingStats ? 'Loading...' : formatCompactNumber(dashboardData.totalExpenses),
       icon: TrendingUp,
       color: 'bg-orange-500'
     },
     {
       title: 'Total Received',
-      value: loadingStats ? 'Loading...' : `Rs.${(dashboardData.totalReceived).toLocaleString()}`,
+      value: loadingStats ? 'Loading...' : formatCompactNumber(dashboardData.totalReceived),
       icon: DollarSign,
       color: 'bg-teal-500'
     },
     {
       title: 'Total Pending',
-      value: loadingStats ? 'Loading...' : `Rs.${(dashboardData.totalPending).toLocaleString()}`,
+      value: loadingStats ? 'Loading...' : formatCompactNumber(dashboardData.totalPending),
       icon: AlertCircle,
-      color: 'bg-red-500'
+      color: 'bg-red-500',
     }
    
   ].filter(Boolean);

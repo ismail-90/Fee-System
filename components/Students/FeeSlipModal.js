@@ -46,7 +46,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     annualChargesPaid: 0,
     prevBal: 0,
     feePaid: 0,
-    miscFee: 0,
+    miscellaneousFee: 0,
     arrears: 0
   });
 
@@ -165,7 +165,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
         annualChargesPaid: student.annualChargesPaid || 0,
         prevBal: student.prevBal || 0,
         feePaid: student.feePaid || 0,
-        miscFee: student.miscFee || 0,
+        miscellaneousFee: student.miscellaneousFee || 0,
         arrears: student.arrears || 0
       });
     }
@@ -751,8 +751,8 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
                     <input
                       type="number"
-                      value={feeBreakdown.miscFee || ''}
-                      onChange={(e) => handleBreakdownChange('miscFee', e.target.value)}
+                      value={feeBreakdown.miscellaneousFee || ''}
+                      onChange={(e) => handleBreakdownChange('miscellaneousFee', e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="0"
                       min="0"

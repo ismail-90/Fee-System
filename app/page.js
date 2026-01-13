@@ -1,4 +1,5 @@
 'use client';
+
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -26,7 +27,6 @@ export default function Login() {
       if (result.role === "admin") router.push("/admin");
       else if (result.role === "accountant") router.push("/accountant");
       else toast.error("Unknown role!");
-
     } else {
       toast.error(result.message);
     }

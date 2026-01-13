@@ -24,28 +24,28 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
       ts: 0,
       cs: 0,
       feeMonth: "",
-      tutionFee: 0,
-      labsFee: 0,
-      lateFeeFine: 0,
-      extraFee: 0,
-      others: 0,
-      examFeeTotal: 0,
-      examFeeCurrentPaid: 0,
-      examFeeBalanced: 0,
-      karateFeeTotal: 0,
-      karateFeeCurrentPaid: 0,
-      karateFeeBalanced: 0,
-      admissionFeeTotal: 0,
-      admissionFeeCurrentPaid: 0,
-      admissionFeeBalanced: 0,
-      registrationFee: 0,
-      annualChargesTotal: 0,
-      annualChargesPaid: 0,
-      annualChargesBalanced: 0,
-      prevBal: 0,
-      feePaid: 0,
-      curBalance: 0,
-      allTotal: 0,
+      tutionFee: "",
+      labsFee: "",
+      lateFeeFine: "",
+      extraFee: "",
+      others: "",
+      examFeeTotal: "",
+      examFeeCurrentPaid: "",
+      examFeeBalanced: "",
+      karateFeeTotal: "",
+      karateFeeCurrentPaid: "",
+      karateFeeBalanced: "",
+      admissionFeeTotal: "",
+      admissionFeeCurrentPaid: "",
+      admissionFeeBalanced: "",
+      registrationFee: "",
+      annualChargesTotal: "",
+      annualChargesPaid: "",
+      annualChargesBalanced: "",
+      prevBal: "",
+      feePaid: "",
+      curBalance: "",
+      allTotal: "",
     }
   });
 
@@ -53,22 +53,22 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
   useEffect(() => {
     const calculateTotals = () => {
       const {
-        tutionFee = 0,
-        labsFee = 0,
-        lateFeeFine = 0,
-        extraFee = 0,
-        others = 0,
-        examFeeTotal = 0,
-        examFeeCurrentPaid = 0,
-        karateFeeTotal = 0,
-        karateFeeCurrentPaid = 0,
-        admissionFeeTotal = 0,
-        admissionFeeCurrentPaid = 0,
-        registrationFee = 0,
-        annualChargesTotal = 0,
-        annualChargesPaid = 0,
-        prevBal = 0,
-        feePaid = 0
+        tutionFee = "",
+        labsFee = "",
+        lateFeeFine = "",
+        extraFee = "",
+        others = "",
+        examFeeTotal = "",
+        examFeeCurrentPaid = "",
+        karateFeeTotal = "",
+        karateFeeCurrentPaid = "",
+        admissionFeeTotal = "",
+        admissionFeeCurrentPaid = "",
+        registrationFee = "",
+        annualChargesTotal = "",
+        annualChargesPaid = "",
+        prevBal = "",
+        feePaid = ""
       } = formData.fee;
 
       // Calculate balanced amounts
@@ -142,29 +142,29 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
       fee: {
         ts: 0,
         cs: 0,
-        feeMonth: "",
-        tutionFee: 0,
-        labsFee: 0,
-        lateFeeFine: 0,
-        extraFee: 0,
-        others: 0,
-        examFeeTotal: 0,
-        examFeeCurrentPaid: 0,
-        examFeeBalanced: 0,
-        karateFeeTotal: 0,
-        karateFeeCurrentPaid: 0,
-        karateFeeBalanced: 0,
-        admissionFeeTotal: 0,
-        admissionFeeCurrentPaid: 0,
-        admissionFeeBalanced: 0,
-        registrationFee: 0,
-        annualChargesTotal: 0,
-        annualChargesPaid: 0,
-        annualChargesBalanced: 0,
-        prevBal: 0,
-        feePaid: 0,
-        curBalance: 0,
-        allTotal: 0,
+      feeMonth: "",
+      tutionFee: "",
+      labsFee: "",
+      lateFeeFine: "",
+      extraFee: "",
+      others: "",
+      examFeeTotal: "",
+      examFeeCurrentPaid: "",
+      examFeeBalanced: "",
+      karateFeeTotal: "",
+      karateFeeCurrentPaid: "",
+      karateFeeBalanced: "",
+      admissionFeeTotal: "",
+      admissionFeeCurrentPaid: "",
+      admissionFeeBalanced: "",
+      registrationFee: "",
+      annualChargesTotal: "",
+      annualChargesPaid: "",
+      annualChargesBalanced: "",
+      prevBal: "",
+      feePaid: "",
+      curBalance: "",
+      allTotal: "",
       }
     });
     setSelectedCampusName("");
@@ -597,26 +597,6 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
                 </div>
               </div>
 
-              {/* Total Summary */}
-              <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Total Summary (Rs.)</h3>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between py-2 border-b border-green-200">
-                    <span className="text-sm font-medium text-gray-700">Current Balance:</span>
-                    <span className="text-lg font-bold text-green-700">
-                      Rs. {formData.fee.curBalance.toLocaleString()}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between py-2">
-                    <span className="text-sm font-medium text-gray-700">All Total:</span>
-                    <span className="text-xl font-bold text-blue-700">
-                      Rs. {formData.fee.allTotal.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Right Column - Special Fees */}

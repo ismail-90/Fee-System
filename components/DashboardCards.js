@@ -357,6 +357,14 @@ export default function DashboardCards({ onCSVUpload }) {
       icon: UserCheck,
       color: 'bg-green-600'
     },
+     {
+      title: 'Import CSV',
+      value: uploading ? 'Uploading...' : 'Upload CSV',
+      icon: Upload,
+      color: 'bg-indigo-500',
+      onClick: handleCSVUploadClick,
+      isUploadCard: true
+    },
     {
       title: 'Total Fee',
       value: loadingStats ? 'Loading...' : `Rs.${(dashboardData.totalFee).toLocaleString()}`,
@@ -380,15 +388,8 @@ export default function DashboardCards({ onCSVUpload }) {
       value: loadingStats ? 'Loading...' : `Rs.${(dashboardData.totalPending).toLocaleString()}`,
       icon: AlertCircle,
       color: 'bg-red-500'
-    },
-    {
-      title: 'Import CSV',
-      value: uploading ? 'Uploading...' : 'Upload CSV',
-      icon: Upload,
-      color: 'bg-indigo-500',
-      onClick: handleCSVUploadClick,
-      isUploadCard: true
     }
+   
   ].filter(Boolean);
 
   return (

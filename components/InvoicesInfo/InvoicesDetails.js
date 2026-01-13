@@ -24,24 +24,23 @@ export default function InvoicesDetails() {
   const [maxFeeLimits, setMaxFeeLimits] = useState({});
   const [processingInvoicePayment, setProcessingInvoicePayment] = useState(false);
   const [processingOldBalancePayment, setProcessingOldBalancePayment] = useState(false);
-  
   const [oldBalanceAmounts, setOldBalanceAmounts] = useState({});
   const [showOldBalances, setShowOldBalances] = useState(false);
 
-  const { 
-    data: invoices = [], 
-    isLoading: loadingInvoices, 
+  const {
+    data: invoices = [],
+    isLoading: loadingInvoices,
     isError,
-    refetch 
+    refetch
   } = useQuery({
-    queryKey: ['invoices', activeTab],  
+    queryKey: ['invoices', activeTab],
     queryFn: async () => {
       const status = activeTab === "unpaid" ? "unPaid" : activeTab === "paid" ? "paid" : "partial";
       const res = await getInvoicesByStatusAPI(status);
       return res.data || [];
     },
-    enabled: !!user, 
-    staleTime: 5 * 60 * 1000,  
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
   });
 
   const filteredInvoices = useMemo(() => {
@@ -89,7 +88,7 @@ export default function InvoicesDetails() {
 
   const handlePayInvoice = (invoice) => {
     setSelectedInvoice(invoice);
-    
+
     // Current invoice fees
     const breakdown = invoice.paymentDetails?.breakdown || {};
     const limits = {
@@ -103,10 +102,10 @@ export default function InvoicesDetails() {
       admissionFeeCurrentPaid: breakdown.admissionFee || 0,
       registrationFee: breakdown.registrationFee || 0,
     };
-    
+
     setMaxFeeLimits(limits);
     setPaymentAmount({ ...limits, total: calculateTotal(limits) });
-    
+
     // Initialize old balances
     const initialOldBalances = {};
     if (invoice.balancedPayments) {
@@ -117,27 +116,45 @@ export default function InvoicesDetails() {
         ...(invoice.balancedPayments.annualCharges || []),
         ...(invoice.balancedPayments.registrationFee || [])
       ];
-      
+
       allOldBalances.forEach(record => {
         if (record.balanced_amount > 0) {
           initialOldBalances[record.recordId] = record.balanced_amount;
         }
       });
     }
-    
+
     setOldBalanceAmounts(initialOldBalances);
     setShowPaymentModal(true);
   };
 
-  const capitalizeFirstLetter = (value = "") => {
-    if (!value) return "N/A";
-    return value.charAt(0).toUpperCase() + value.slice(1);
+  const capitalizeFirstLetter = (month) => {
+    if (!month) return "";
+    const months = {
+      Jan: "January",
+      Feb: "February",
+      Mar: "March",
+      Apr: "April",
+      May: "May",
+      Jun: "June",
+      Jul: "July",
+      Aug: "August",
+      Sep: "September",
+      Oct: "October",
+      Nov: "November",
+      Dec: "December",
+    };
+
+    const shortMonth =
+      month.charAt(0).toUpperCase() + month.slice(1, 3).toLowerCase();
+
+    return months[shortMonth] || month;
   };
 
   // Function to pay current invoice only
   const handlePayCurrentInvoice = async () => {
     if (!selectedInvoice) return;
-    
+
     const totalCurrentAmount = Number(paymentAmount.total || 0);
     if (totalCurrentAmount <= 0) {
       return alert("Please enter payment amount for current invoice");
@@ -154,7 +171,7 @@ export default function InvoicesDetails() {
       if (invoiceResponse.success) {
         alert("✅ Current invoice payment successful!");
         queryClient.invalidateQueries(['invoices']);
-        
+
         // Reset only invoice payment amounts, keep old balances
         setPaymentAmount({ total: 0 });
         Object.keys(maxFeeLimits).forEach(key => {
@@ -174,7 +191,7 @@ export default function InvoicesDetails() {
   // Function to pay old balances only
   const handlePayOldBalances = async () => {
     if (!selectedInvoice) return;
-    
+
     const totalOldBalanceAmount = Object.values(oldBalanceAmounts).reduce((sum, val) => sum + (Number(val) || 0), 0);
     if (totalOldBalanceAmount <= 0) {
       return alert("Please select old balances to pay");
@@ -192,7 +209,7 @@ export default function InvoicesDetails() {
           ...(selectedInvoice.balancedPayments.annualCharges || []),
           ...(selectedInvoice.balancedPayments.registrationFee || [])
         ];
-        
+
         allOldBalances.forEach(record => {
           const amount = oldBalanceAmounts[record.recordId] || 0;
           if (amount > 0) {
@@ -206,7 +223,7 @@ export default function InvoicesDetails() {
               else if (selectedInvoice.balancedPayments.annualCharges?.includes(record)) feeType = "annual charges";
               else if (selectedInvoice.balancedPayments.registrationFee?.includes(record)) feeType = "registration fee";
             }
-            
+
             if (feeType) {
               oldBalancePayments.push({
                 feeType: feeType.toLowerCase(),
@@ -226,10 +243,10 @@ export default function InvoicesDetails() {
       if (oldBalanceResponse.success) {
         alert("✅ Old balances payment successful!");
         queryClient.invalidateQueries(['invoices']);
-        
+
         // Reset old balance amounts
         setOldBalanceAmounts({});
-        
+
         // Close modal if both payments are done
         if (paymentAmount.total <= 0) {
           setShowPaymentModal(false);
@@ -250,7 +267,7 @@ export default function InvoicesDetails() {
   const handlePayBoth = async () => {
     const totalCurrentAmount = Number(paymentAmount.total || 0);
     const totalOldBalanceAmount = Object.values(oldBalanceAmounts).reduce((sum, val) => sum + (Number(val) || 0), 0);
-    
+
     if (totalCurrentAmount <= 0 && totalOldBalanceAmount <= 0) {
       return alert("Please enter payment amount");
     }
@@ -287,7 +304,7 @@ export default function InvoicesDetails() {
             ...(selectedInvoice.balancedPayments.annualCharges || []),
             ...(selectedInvoice.balancedPayments.registrationFee || [])
           ];
-          
+
           allOldBalances.forEach(record => {
             const amount = oldBalanceAmounts[record.recordId] || 0;
             if (amount > 0) {
@@ -301,7 +318,7 @@ export default function InvoicesDetails() {
                 else if (selectedInvoice.balancedPayments.annualCharges?.includes(record)) feeType = "annual charges";
                 else if (selectedInvoice.balancedPayments.registrationFee?.includes(record)) feeType = "registration fee";
               }
-              
+
               if (feeType) {
                 oldBalancePayments.push({
                   feeType: feeType.toLowerCase(),
@@ -417,7 +434,7 @@ export default function InvoicesDetails() {
                 <tr>
                   <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Invoice</th>
                   <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Student</th>
-                   
+
                   {activeTab === "paid" && (
                     <>
                       <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Paid</th>
@@ -436,9 +453,9 @@ export default function InvoicesDetails() {
                   const fees = invoice.feeDetails || {};
                   const payment = invoice.paymentDetails || {};
                   const balancedPayments = invoice.balancedPayments || {};
-                  
+
                   const hasOldBalances = balancedPayments.summary?.totalBalancedAmount > 0;
-                  
+
                   return (
                     <tr key={info.id || index} className="hover:bg-gray-50 transition">
                       <td className="p-4">
@@ -471,7 +488,7 @@ export default function InvoicesDetails() {
                           </div>
                         </div>
                       </td>
-                      
+
                       {activeTab === "paid" && (
                         <>
                           <td className="p-4 text-green-600 font-bold text-sm">Rs. {payment.totalAmountPaid?.toLocaleString()}</td>
@@ -481,7 +498,7 @@ export default function InvoicesDetails() {
                       {activeTab === "unpaid" && <td className="p-4 text-sm text-gray-600">{formatDate(info.createdAt)}</td>}
                       <td className="p-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                          ${info.paymentStatus === "paid" ? "bg-green-100 text-green-800 border-green-200" : 
+                          ${info.paymentStatus === "paid" ? "bg-green-100 text-green-800 border-green-200" :
                             info.paymentStatus === "partial" ? "bg-yellow-100 text-yellow-800 border-yellow-200" : "bg-red-100 text-red-800 border-red-200"}`}>
                           {info.paymentStatus}
                         </span>
@@ -492,8 +509,8 @@ export default function InvoicesDetails() {
                             <button onClick={() => window.open(info.invoiceUrl || "", "_blank")} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition">
                               <Eye size={18} />
                             </button>
-                            <button 
-                              onClick={() => handlePayInvoice(invoice)} 
+                            <button
+                              onClick={() => handlePayInvoice(invoice)}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition text-xs font-medium shadow-sm"
                             >
                               <CreditCard size={14} /> Pay
@@ -532,20 +549,20 @@ export default function InvoicesDetails() {
                     </span>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     setShowPaymentModal(false);
                     setSelectedInvoice(null);
                     setPaymentAmount({});
                     setOldBalanceAmounts({});
-                  }} 
-                  className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition" 
+                  }}
+                  className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition"
                   disabled={processingInvoicePayment || processingOldBalancePayment}
                 >
                   <XCircle size={24} />
                 </button>
               </div>
-              
+
               <div className="p-6 overflow-y-auto">
                 {/* Current Invoice Amount */}
                 <div className="mb-6">
@@ -558,8 +575,8 @@ export default function InvoicesDetails() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                     {feeInputFields.map(({ key, label }) => {
                       const maxAmount = maxFeeLimits[key] || 0;
-                      if (maxAmount === 0) return null; 
-                      
+                      if (maxAmount === 0) return null;
+
                       return (
                         <div key={key}>
                           <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -568,14 +585,14 @@ export default function InvoicesDetails() {
                           </label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">Rs.</span>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              max={maxAmount} 
-                              value={paymentAmount[key] || ""} 
-                              onChange={(e) => handleFeeChange(key, e.target.value)} 
-                              className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all outline-none" 
-                              placeholder="0" 
+                            <input
+                              type="number"
+                              min="0"
+                              max={maxAmount}
+                              value={paymentAmount[key] || ""}
+                              onChange={(e) => handleFeeChange(key, e.target.value)}
+                              className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all outline-none"
+                              placeholder="0"
                             />
                           </div>
                         </div>
@@ -746,7 +763,7 @@ export default function InvoicesDetails() {
                 )}
 
                 {/* Summary Cards */}
-                
+
               </div>
 
               {/* Footer Actions */}
@@ -762,26 +779,26 @@ export default function InvoicesDetails() {
                     Invoice: <span className="font-mono">{selectedInvoice.invoiceInfo?.invoiceNumber}</span>
                   </div>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <button 
+                  <button
                     onClick={() => {
                       setShowPaymentModal(false);
                       setSelectedInvoice(null);
                       setPaymentAmount({});
                       setOldBalanceAmounts({});
-                    }} 
-                    className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition" 
+                    }}
+                    className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition"
                     disabled={processingInvoicePayment || processingOldBalancePayment}
                   >
                     Cancel
                   </button>
-                  
+
                   {/* Separate Payment Buttons */}
                   <div className="flex flex-col sm:flex-row gap-2 flex-1">
                     {/* Pay Current Invoice Button */}
-                    <button 
-                      onClick={handlePayCurrentInvoice} 
+                    <button
+                      onClick={handlePayCurrentInvoice}
                       disabled={processingInvoicePayment || processingOldBalancePayment || (paymentAmount.total || 0) <= 0}
                       className="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -801,8 +818,8 @@ export default function InvoicesDetails() {
 
                     {/* Pay Old Balances Button */}
                     {selectedInvoice.balancedPayments?.summary?.totalBalancedAmount > 0 && (
-                      <button 
-                        onClick={handlePayOldBalances} 
+                      <button
+                        onClick={handlePayOldBalances}
                         disabled={processingOldBalancePayment || processingInvoicePayment || Object.values(oldBalanceAmounts).reduce((sum, val) => sum + (Number(val) || 0), 0) <= 0}
                         className="flex-1 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -823,8 +840,8 @@ export default function InvoicesDetails() {
 
                     {/* Pay Both Button (Optional) */}
                     {(paymentAmount.total > 0 && Object.values(oldBalanceAmounts).reduce((sum, val) => sum + (Number(val) || 0), 0) > 0) && (
-                      <button 
-                        onClick={handlePayBoth} 
+                      <button
+                        onClick={handlePayBoth}
                         disabled={processingInvoicePayment || processingOldBalancePayment}
                         className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >

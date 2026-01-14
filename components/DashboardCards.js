@@ -380,12 +380,7 @@ export default function DashboardCards({ onCSVUpload }) {
       icon: Users,
       color: 'bg-yellow-500'
     },
-    user?.role === 'accountant' && {
-      title: 'Fee Cleared',
-      value: dashboardData.totalStudents - dashboardData.totalDefaulters,
-      icon: UserCheck,
-      color: 'bg-green-600'
-    },
+     
      {
       title: 'Import CSV',
       value: uploading ? 'Uploading...' : 'Upload CSV',

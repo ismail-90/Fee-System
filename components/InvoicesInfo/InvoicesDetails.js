@@ -17,7 +17,6 @@ export default function InvoicesDetails() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("unpaid");
   const [searchTerm, setSearchTerm] = useState("");
-  // Payment modal states
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState({});

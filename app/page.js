@@ -11,7 +11,6 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('');
   const [loading, setLoading] = useState(false);
-
   const { login } = useAuth();
   const router = useRouter();
 

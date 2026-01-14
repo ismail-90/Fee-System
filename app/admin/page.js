@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
-import Sidebar from '@/components/Sidebar';
 import DashboardCards from '../../components/DashboardCards';
 import { getDashboardStatsAPI } from '../../Services/dashboardService';
 import { Loader2, RefreshCw, Calendar } from 'lucide-react';

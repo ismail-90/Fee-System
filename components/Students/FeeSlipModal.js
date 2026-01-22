@@ -26,26 +26,22 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
   const [copied, setCopied] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [showDoubleMonthSelector, setShowDoubleMonthSelector] = useState(false);
-  
+
   // Fee breakdown state
+
   const [feeBreakdown, setFeeBreakdown] = useState({
-    tuitionFee: 0,
+    tutionFee: "",
     booksCharges: 0,
     registrationFee: 0,
-    examFeeTotal: 0,
-    examFeeCurrentPaid: 0,
+    examFee: 0,
     labFee: 0,
     artCraftFee: 0,
-    karateFeeTotal: 0,
-    karateFeeCurrentPaid: 0,
+    karateFee: 0,
     lateFeeFine: 0,
-    others: 0,
-    admissionFeeTotal: 0,
-    admissionFeeCurrentPaid: 0,
-    annualChargesTotal: 0,
-    annualChargesPaid: 0,
-    prevBal: 0,
-    feePaid: 0,
+    others: { },
+    admissionFee: 0,
+    annualCharges: 0,
+    absentFine: 0,
     miscellaneousFee: 0,
     arrears: 0
   });
@@ -64,7 +60,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
       "January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December"
     ];
-    
+
     return months.map(month => `${month}-${year}`);
   };
 
@@ -73,7 +69,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     const currentYear = getCurrentYear();
     const months = generateMonthsForYear(currentYear);
     setFeeMonths(months);
-    
+
     // Set default month to current month if available
     const currentMonthIndex = new Date().getMonth();
     if (months[currentMonthIndex]) {
@@ -89,13 +85,13 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
       // Set fee month from student or current month
       if (student?.feeMonth) {
         // Check if student's fee month exists in current year months
-        const studentMonthExists = feeMonths.some(month => 
+        const studentMonthExists = feeMonths.some(month =>
           month.toLowerCase().includes(student.feeMonth.toLowerCase())
         );
-        
+
         if (studentMonthExists) {
           // Find the matching month
-          const matchingMonth = feeMonths.find(month => 
+          const matchingMonth = feeMonths.find(month =>
             month.toLowerCase().includes(student.feeMonth.toLowerCase())
           );
           setFeeMonth(matchingMonth || feeMonths[0]);
@@ -109,10 +105,12 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
       }
 
       // Initialize fee breakdown from student data
-      setFeeBreakdown({
+      setFeeBreakdown(prev => ({
+        ...prev,
         prevBal: student.curBalance || 0,
         feePaid: student.feePaid || 0,
-      });
+      }));
+
     }
   }, [student, feeMonths]);
 
@@ -143,28 +141,62 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
       }));
     }
   };
+  const addOtherField = () => {
+    setFeeBreakdown(prev => ({
+      ...prev,
+      others: {
+        ...prev.others,
+        "": 0
+      }
+    }));
+  };
+
+  const updateOtherKey = (oldKey, newKey) => {
+    setFeeBreakdown(prev => {
+      const updated = { ...prev.others };
+      updated[newKey] = updated[oldKey];
+      delete updated[oldKey];
+      return { ...prev, others: updated };
+    });
+  };
+
+  const updateOtherValue = (key, value) => {
+    const num = value === "" ? 0 : parseFloat(value);
+    if (isNaN(num)) return;
+
+    setFeeBreakdown(prev => ({
+      ...prev,
+      others: {
+        ...prev.others,
+        [key]: num
+      }
+    }));
+  };
+
+  const removeOtherField = (key) => {
+    setFeeBreakdown(prev => {
+      const updated = { ...prev.others };
+      delete updated[key];
+      return { ...prev, others: updated };
+    });
+  };
 
   // Reset breakdown to student's original values
   const resetBreakdown = () => {
     if (student) {
       setFeeBreakdown({
-        tuitionFee: student.tuitionFee || 0,
+        tutionFee: student.tutionFee || 0,
         booksCharges: student.booksCharges || 0,
         registrationFee: student.registrationFee || 0,
-        examFeeTotal: student.examFeeTotal || 0,
-        examFeeCurrentPaid: student.examFeeCurrentPaid || 0,
+        examFee: student.examFee || 0,
         labFee: student.labFee || 0,
         artCraftFee: student.artCraftFee || 0,
-        karateFeeTotal: student.karateFeeTotal || 0,
-        karateFeeCurrentPaid: student.karateFeeCurrentPaid || 0,
+        karateFee: student.karateFee || 0,
         lateFeeFine: student.lateFeeFine || 0,
-        others: student.others || 0,
-        admissionFeeTotal: student.admissionFeeTotal || 0,
-        admissionFeeCurrentPaid: student.admissionFeeCurrentPaid || 0,
-        annualChargesTotal: student.annualChargesTotal || 0,
-        annualChargesPaid: student.annualChargesPaid || 0,
-        prevBal: student.prevBal || 0,
-        feePaid: student.feePaid || 0,
+        others: student.others || {},
+        admissionFee: student.admissionFee || 0,
+        annualCharges: student.annualCharges || 0,
+        absentFine: student.absentFine || 0,
         miscellaneousFee: student.miscellaneousFee || 0,
         arrears: student.arrears || 0
       });
@@ -263,12 +295,12 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
 
       const response = await generateFeeReceiptAPI(feeData);
       setSlipData(response.data);
-      
+
       // Auto open in new tab
       if (response.data.invoiceUrl) {
         window.open(response.data.invoiceUrl, '_blank');
       }
-      
+
     } catch (error) {
       console.error("Error generating fee slip:", error);
       alert("Failed to generate fee slip. Please try again.");
@@ -279,7 +311,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
 
   const handleDownloadSlip = async () => {
     if (!slipData) return;
-    
+
     try {
       const response = await fetch(slipData.downloadUrl || slipData.invoiceUrl);
       if (response.ok) {
@@ -287,8 +319,8 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const monthText = feeMonthType === "single" ? 
-          feeMonth : 
+        const monthText = feeMonthType === "single" ?
+          feeMonth :
           `${getMonthName(feeMonth)}-${getMonthName(secondMonth)}-${getCurrentYear()}`;
         a.download = `Fee-Slip-${student?.studentName || 'student'}-${monthText}.pdf`;
         document.body.appendChild(a);
@@ -310,9 +342,9 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
 
   const handleShareSlip = async () => {
     if (!slipData) return;
-    
+
     const shareUrl = slipData.previewUrl || slipData.invoiceUrl;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -330,7 +362,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
 
   const handleEmailSlip = () => {
     if (!slipData) return;
-    
+
     const shareUrl = slipData.previewUrl || slipData.invoiceUrl;
     const subject = `Fee Slip - ${student?.studentName || 'Student'} - ${getMonthDisplayText()}`;
     const body = `Dear Parent,\n\nPlease find attached the fee slip for ${student?.studentName || 'Student'}.\n\nFee Slip: ${shareUrl}\n\nRegards,\nSchool Administration`;
@@ -431,22 +463,20 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                   setShowDoubleMonthSelector(false);
                   setSecondMonth("");
                 }}
-                className={`px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
-                  feeMonthType === "single"
+                className={`px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${feeMonthType === "single"
                     ? 'bg-linear-to-r from-blue-50 to-indigo-50 border-blue-500 text-blue-700 shadow-sm'
                     : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
-                }`}
+                  }`}
               >
                 <FileText size={18} />
                 Single Month
               </button>
               <button
                 onClick={handleDoubleMonthSelect}
-                className={`px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
-                  feeMonthType === "double"
+                className={`px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${feeMonthType === "double"
                     ? 'bg-linear-to-r from-purple-50 to-pink-50 border-purple-500 text-purple-700 shadow-sm'
                     : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
-                }`}
+                  }`}
               >
                 <FileText size={18} />
                 <FileText size={18} />
@@ -465,8 +495,8 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                     key={month}
                     onClick={() => handleSingleMonthSelect(month)}
                     className={`px-3 py-2.5 rounded-lg border transition-all ${feeMonth === month
-                        ? 'bg-linear-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-md'
-                        : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+                      ? 'bg-linear-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-md'
+                      : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
                       }`}
                   >
                     <div className="font-medium">{getMonthName(month)}</div>
@@ -489,11 +519,10 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                         <button
                           key={month}
                           onClick={() => setFeeMonth(month)}
-                          className={`px-3 py-2.5 rounded-lg border transition-all ${
-                            feeMonth === month
+                          className={`px-3 py-2.5 rounded-lg border transition-all ${feeMonth === month
                               ? 'bg-linear-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-md'
                               : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
-                          }`}
+                            }`}
                         >
                           <div className="font-medium">{getMonthName(month)}</div>
                           <div className="text-xs opacity-75">{month.split('-')[1]}</div>
@@ -511,11 +540,10 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                         <button
                           key={month}
                           onClick={() => setSecondMonth(month)}
-                          className={`px-3 py-2.5 rounded-lg border transition-all ${
-                            secondMonth === month
+                          className={`px-3 py-2.5 rounded-lg border transition-all ${secondMonth === month
                               ? 'bg-linear-to-r from-purple-600 to-pink-600 text-white border-purple-600 shadow-md'
                               : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
-                          }`}
+                            }`}
                         >
                           <div className="font-medium">{getMonthName(month)}</div>
                           <div className="text-xs opacity-75">{month.split('-')[1]}</div>
@@ -547,23 +575,23 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {/* Column 1 - Tuition and Books */}
               <div className="space-y-4">
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tuition Fee {feeMonthType === "double" && "(for 2 months)"}
+                    Tuition Fee
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
                     <input
                       type="number"
-                      value={feeBreakdown.tuitionFee || ''}
-                      onChange={(e) => handleBreakdownChange('tuitionFee', e.target.value)}
+                      value={feeBreakdown.tutionFee || ''}
+                      onChange={(e) => handleBreakdownChange('tutionFee', e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="0"
                       min="0"
                     />
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Books Charges
@@ -620,14 +648,14 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Exam Fee Total
+                    Exam Fee
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
                     <input
                       type="number"
-                      value={feeBreakdown.examFeeTotal || ''}
-                      onChange={(e) => handleBreakdownChange('examFeeTotal', e.target.value)}
+                      value={feeBreakdown.examFee || ''}
+                      onChange={(e) => handleBreakdownChange('examFee', e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="0"
                       min="0"
@@ -635,22 +663,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Exam Fee Paid
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
-                    <input
-                      type="number"
-                      value={feeBreakdown.examFeeCurrentPaid || ''}
-                      onChange={(e) => handleBreakdownChange('examFeeCurrentPaid', e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="0"
-                      min="0"
-                    />
-                  </div>
-                </div>
+
               </div>
 
               {/* Column 3 - Art, Craft, Karate */}
@@ -674,14 +687,14 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Karate Fee Total
+                    Karate Fee
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
                     <input
                       type="number"
-                      value={feeBreakdown.karateFeeTotal || ''}
-                      onChange={(e) => handleBreakdownChange('karateFeeTotal', e.target.value)}
+                      value={feeBreakdown.karateFee || ''}
+                      onChange={(e) => handleBreakdownChange('karateFee', e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="0"
                       min="0"
@@ -689,22 +702,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Karate Fee Paid
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
-                    <input
-                      type="number"
-                      value={feeBreakdown.karateFeeCurrentPaid || ''}
-                      onChange={(e) => handleBreakdownChange('karateFeeCurrentPaid', e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="0"
-                      min="0"
-                    />
-                  </div>
-                </div>
+
               </div>
 
               {/* Column 4 - Late Fee and Others */}
@@ -726,22 +724,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Others
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
-                    <input
-                      type="number"
-                      value={feeBreakdown.others || ''}
-                      onChange={(e) => handleBreakdownChange('others', e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="0"
-                      min="0"
-                    />
-                  </div>
-                </div>
+
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -771,19 +754,19 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                 {showBreakdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 Additional Fees (Admission, Annual, Balances)
               </button>
-              
+
               {showBreakdown && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Admission Fee Total
+                      Admission Fee
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
                       <input
                         type="number"
-                        value={feeBreakdown.admissionFeeTotal || ''}
-                        onChange={(e) => handleBreakdownChange('admissionFeeTotal', e.target.value)}
+                        value={feeBreakdown.admissionFee || ''}
+                        onChange={(e) => handleBreakdownChange('admissionFee', e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="0"
                         min="0"
@@ -793,14 +776,14 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Admission Fee Paid
+                      Annual Charges
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
                       <input
                         type="number"
-                        value={feeBreakdown.admissionFeeCurrentPaid || ''}
-                        onChange={(e) => handleBreakdownChange('admissionFeeCurrentPaid', e.target.value)}
+                        value={feeBreakdown.annualCharges || ''}
+                        onChange={(e) => handleBreakdownChange('annualCharges', e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="0"
                         min="0"
@@ -810,14 +793,14 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Annual Charges Total
+                      absent Fine
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
                       <input
                         type="number"
-                        value={feeBreakdown.annualChargesTotal || ''}
-                        onChange={(e) => handleBreakdownChange('annualChargesTotal', e.target.value)}
+                        value={feeBreakdown.absentFine || ''}
+                        onChange={(e) => handleBreakdownChange('absentFine', e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="0"
                         min="0"
@@ -825,55 +808,54 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Annual Charges Paid
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
-                      <input
-                        type="number"
-                        value={feeBreakdown.annualChargesPaid || ''}
-                        onChange={(e) => handleBreakdownChange('annualChargesPaid', e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="0"
-                        min="0"
-                      />
-                    </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Previous Balance
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
-                      <input
-                        type="number"
-                        value={feeBreakdown.prevBal || ''}
-                        onChange={(e) => handleBreakdownChange('prevBal', e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="0"
-                        min="0"
-                      />
-                    </div>
-                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-gray-700">
+                        Others (Custom Fees)
+                      </label>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Fee Paid
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
-                      <input
-                        type="number"
-                        value={feeBreakdown.feePaid || ''}
-                        onChange={(e) => handleBreakdownChange('feePaid', e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="0"
-                        min="0"
-                      />
+                      <button
+                        type="button"
+                        onClick={addOtherField}
+                        className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                      >
+                        + Add
+                      </button>
                     </div>
+
+                    {Object.entries(feeBreakdown.others || {}).map(([key, value], index) => (
+                      <div key={index} className="grid grid-cols-12 gap-2 items-center">
+
+                        {/* Key */}
+                        <input
+                          type="text"
+                          value={key}
+                          onChange={(e) => updateOtherKey(key, e.target.value)}
+                          placeholder="Fee name (e.g. Lab Fee)"
+                          className="col-span-6 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+
+                        {/* Value */}
+                        <input
+                          type="number"
+                          value={value}
+                          onChange={(e) => updateOtherValue(key, e.target.value)}
+                          placeholder="Amount"
+                          min="0"
+                          className="col-span-4 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+
+                        {/* Remove */}
+                        <button
+                          type="button"
+                          onClick={() => removeOtherField(key)}
+                          className="col-span-2 text-red-600 hover:bg-red-100 rounded-lg p-2"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
                   </div>
 
                   <div>
@@ -918,17 +900,17 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="flex justify-between">
                   <span className="text-gray-700">Fee Period:</span>
                   <span className="font-medium">{getMonthDisplayText()}</span>
                 </div>
-                
+
                 <div className="flex justify-between">
                   <span className="text-gray-700">Generated At:</span>
                   <span className="font-medium">{formatDate(slipData.generatedAt)}</span>
                 </div>
-                
+
                 {slipData.amounts && (
                   <div className="mt-4 pt-4 border-t border-green-200">
                     <div className="flex justify-between font-bold">
@@ -994,8 +976,8 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                 <button
                   onClick={() => copyToClipboard(slipData.previewUrl)}
                   className={`px-4 py-2 rounded-lg flex items-center gap-2 ${copied
-                      ? 'bg-green-600 text-white'
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
                     }`}
                 >
                   {copied ? (
@@ -1052,7 +1034,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
               )}
             </p>
           </div>
-          
+
           <div className="flex gap-3">
             <button
               onClick={onClose}
@@ -1061,7 +1043,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
             >
               {slipData ? 'Close' : 'Cancel'}
             </button>
-            
+
             {!slipData ? (
               <button
                 onClick={generateFeeSlip}

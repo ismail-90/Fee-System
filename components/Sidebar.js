@@ -12,7 +12,8 @@ import {
   CreditCard,
   Receipt,
   X,
-  UserRoundMinus
+  UserRoundMinus,
+  ReceiptIcon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Image from 'next/image';
@@ -38,7 +39,7 @@ export default function Sidebar({ open, setOpen }) {
     { name: 'Campuses', href: '/admin/campus', icon: School },
     { name: 'Students', href: '/admin/students', icon: Users },
     { name: 'Defaulters', href: '/admin/defaulters', icon: UserRoundMinus },
-    { name: 'Invoices', href: '/admin/invoices', icon: FileText },
+    { name: 'Recievings', href: '/admin/recieving', icon: FileText },
     { name: 'Reports', href: '/admin/reports', icon: BarChart3 },
     { name: 'Expenses', href: '/admin/expenses', icon: DollarSign },
   ];
@@ -47,7 +48,8 @@ export default function Sidebar({ open, setOpen }) {
   const accountantMenuItems = [
     { name: 'Home', href: '/accountant', icon: Home },
     { name: 'Students', href: '/accountant/students', icon: Users },
-    { name: 'Invoices', href: '/accountant/invoices', icon: FileText },
+    { name: 'Recievings', href: '/accountant/recieving', icon: FileText },
+    { name: 'Challans', href: '/accountant/challans', icon: ReceiptIcon },
     { name: 'Defaulters', href: '/accountant/defaulters', icon: UserRoundMinus },
     { name: 'Expenses', href: '/accountant/expenses', icon: DollarSign },
     { name: 'Reports', href: '/accountant/reports', icon: BarChart3 },

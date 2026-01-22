@@ -56,3 +56,14 @@ export const addExpenseAPI = async (data) => {
   const response = await api.post("/expenses/create", data);
   return response.data;
 };
+
+// increase fee
+export const increaseFeeAPI = async (data) => {
+  const response = await api.post("/global/increase-fees", data);
+  return response.data;
+}
+// get balance amount
+export const getBalanceAmountAPI = async (invoiceId) => {
+  const response = await api.get(`/global/balance/${invoiceId}`);
+  return response.data;
+}

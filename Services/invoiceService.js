@@ -1,8 +1,8 @@
 import api from "./api";
 
 // get invoice by status
-export const getInvoicesByStatusAPI = async (status) => {
-  const response = await api.get(`/global/invoices?status=${status}`);
+export const getInvoicesByStatusAPI = async (status, className) => {
+  const response = await api.get(`/global/invoices?status=${status}&cn=${className}`);
   return response.data;
 }
 
@@ -33,5 +33,11 @@ export const getBulkInvoicesAPI = async () => {
 //pay old balance.
 export const payOldBalanceAPI = async (paymentData) => {
   const response = await api.post(`/global/pay-balanced-amount`, paymentData);
+  return response.data;
+}
+
+// delete invoice
+export const deleteInvoiceAPI = async (invoiceId) => {
+  const response = await api.delete(`/global/remove/${invoiceId}`);
   return response.data;
 }

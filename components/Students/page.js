@@ -8,7 +8,6 @@ import {
   Loader2, 
   PlusCircle, 
   Trash2, 
-  Download,
   FileSpreadsheet 
 } from "lucide-react";
 import { getStudentsByClassAPI } from "../../Services/feeService";
@@ -380,25 +379,8 @@ export default function StudentsPage() {
                       <FileSpreadsheet size={18} />
                     )}
                     Export All ({students.length})
-                  </button>
-
-                  {/* Export Filtered Button */}
-                  {filteredStudents.length !== students.length && (
-                    <button
-                      onClick={handleExportFilteredStudents}
-                      disabled={exporting || filteredStudents.length === 0}
-                      className="flex items-center gap-2 bg-linear-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white px-4 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {exporting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Download size={18} />
-                      )}
-                      Export Filtered ({filteredStudents.length})
-                    </button>
-                  )}
+                  </button>    
                 </div>
-
                 {/* Create Student Button */}
                 <button
                   onClick={() => setIsCreateModalOpen(true)}

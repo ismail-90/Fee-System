@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { uploadFeeCSVAPI } from '../Services/feeService';
-import { getCampusesAPI } from '../Services/campusService';
+ import { getCampusesAPI } from '../Services/campusService';
 import { getProfileAPI } from '../Services/authService';
 import { useAuth } from '../context/AuthContext';
 import { getDashboardStatsAPI } from '../Services/dashboardService';
@@ -172,10 +172,14 @@ export default function DashboardCards({ onCSVUpload }) {
   });
   const [loadingStats, setLoadingStats] = useState(true);
 
-  // Fetch dashboard stats on component mount
-  useEffect(() => {
-    fetchDashboardStats();
-  }, []);
+ const statsFetchedRef = useRef(false);
+
+useEffect(() => {
+  if (statsFetchedRef.current) return;
+  statsFetchedRef.current = true;
+
+  fetchDashboardStats();
+}, []);
 
   // Fetch campuses when popup opens based on role
   useEffect(() => {
@@ -201,6 +205,7 @@ export default function DashboardCards({ onCSVUpload }) {
           totalReceived: response.data.totalReceived || 0,
           totalPending: response.data.totalPending || 0,
           totalDefaulters: response.data.totalDefaulters || 0,
+          totalPendingStudents: response.data.feePendingCount || 0,
           totalReceivedBreakdown: response.data.totalReceivedBreakdown || null
         });
       }
@@ -248,6 +253,7 @@ export default function DashboardCards({ onCSVUpload }) {
       setLoadingProfile(false);
     }
   };
+
   const handleExportAllStudents = async () => {
   try {
     setExporting(true);
@@ -364,21 +370,27 @@ export default function DashboardCards({ onCSVUpload }) {
   const cards = [
     user?.role === 'admin' && {
       title: 'Total Campuses',
-      value: loadingStats ? 'Loading...' : dashboardData.totalCampuses,
+      value: dashboardData.totalCampuses,
       icon: School,
       color: 'bg-blue-500'
     },
     {
       title: 'Total Students',
-      value: loadingStats ? 'Loading...' : dashboardData.totalStudents,
+     value: dashboardData.totalStudents,
       icon: Users,
       color: 'bg-green-500'
     },
     {
       title: 'Total Defaulters',
-      value: loadingStats ? 'Loading...' : dashboardData.totalDefaulters,
+      value:   dashboardData.totalDefaulters,
       icon: Users,
       color: 'bg-yellow-500'
+    },
+      {
+      title: 'Pending Students',
+      value:   dashboardData.totalPendingStudents,
+      icon: Users,
+      color: 'bg-red-500'
     },
      
      {
@@ -391,25 +403,25 @@ export default function DashboardCards({ onCSVUpload }) {
     },
     {
       title: 'Total Fee',
-      value: loadingStats ? 'Loading...' : formatCompactNumber(dashboardData.totalFee), 
+      value: formatCompactNumber(dashboardData.totalFee),
       icon: DollarSign,
       color: 'bg-purple-500'
     },
     {
       title: 'Expenses',
-      value: loadingStats ? 'Loading...' : formatCompactNumber(dashboardData.totalExpenses),
+      value:   formatCompactNumber(dashboardData.totalExpenses),
       icon: TrendingUp,
       color: 'bg-orange-500'
     },
     {
       title: 'Total Received',
-      value: loadingStats ? 'Loading...' : formatCompactNumber(dashboardData.totalReceived),
+      value:  formatCompactNumber(dashboardData.totalReceived),
       icon: DollarSign,
       color: 'bg-teal-500'
     },
     {
       title: 'Total Pending',
-      value: loadingStats ? 'Loading...' : formatCompactNumber(dashboardData.totalPending),
+      value:  formatCompactNumber(dashboardData.totalPending),
       icon: AlertCircle,
       color: 'bg-red-500',
     }
@@ -466,6 +478,7 @@ export default function DashboardCards({ onCSVUpload }) {
         className="hidden"
         disabled={uploading}
       />
+ 
 
       {/* CSV Upload Popup */}
       {showPopup && (

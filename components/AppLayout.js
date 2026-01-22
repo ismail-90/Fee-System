@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../components/Sidebar';
@@ -9,38 +9,32 @@ import { Loader2 } from 'lucide-react';
 export default function AppLayout({ children }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-
-  // ✅ SIDEBAR STATE (MISSING PART)
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
 
-  // 🔐 Auth Guard
-  if (!loading && !user) {
-    router.push('/');
-    return null;
-  }
-
-  if (loading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin text-blue-600" />
-      </div>
-    );
-  }
+  // 🔐 Redirect AFTER auth resolved
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/');
+    }
+  }, [loading, user, router]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       
-      {/* ✅ Sidebar with state */}
+      {/* ✅ Sidebar ALWAYS render */}
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
 
-      {/* Main content */}
       <div className="lg:ml-64">
-        {/* ✅ Navbar toggle connected */}
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
 
         <main className="p-4">
-          {children}
+          {loading ? (
+            <div className="flex items-center justify-center h-[70vh]">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </div>
     </div>

@@ -7,6 +7,7 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -16,28 +17,37 @@ export function AuthProvider({ children }) {
       if (token && savedUser) {
         try {
           const parsedUser = JSON.parse(savedUser);
-          setUser(parsedUser);
-          const profileRes = await getProfileAPI();
-
-          const fullUser = {
-            ...parsedUser,
-            campus: profileRes.campus,
-          };
-
-          setUser(fullUser);
-          localStorage.setItem("user", JSON.stringify(fullUser));
+          setUser(parsedUser); // ✅ فوری user set کر دیں
+          setLoading(false); // ✅ فوری loading false
+          
+          // 🔄 Background میں profile fetch کریں
+          setTimeout(async () => {
+            try {
+              const profileRes = await getProfileAPI();
+              const fullUser = {
+                ...parsedUser,
+                campus: profileRes.campus,
+              };
+              setUser(fullUser);
+              localStorage.setItem("user", JSON.stringify(fullUser));
+            } catch (error) {
+              console.error("Profile fetch failed:", error);
+            }
+          }, 0);
+          
         } catch (error) {
           console.error("Auth init error:", error);
           clearAuthData();
-          
+          setLoading(false);
         }
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
+      setInitialCheckDone(true);
     };
 
     initAuth();
   }, []);
-
   /* 🔹 LOGIN */
   const login = async (email, password, role) => {
     try {

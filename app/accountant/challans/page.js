@@ -557,7 +557,6 @@ export default function BulkInvoicesPage() {
                     className="border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5"
                 >
                     <option value={1}>1 Student (3 Copies)</option>
-                    <option value={2}>2 Students</option>
                     <option value={3}>3 Students</option>
                 </select>
             </div>

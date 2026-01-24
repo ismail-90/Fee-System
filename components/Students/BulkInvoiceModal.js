@@ -40,7 +40,7 @@ export default function BulkInvoiceModal({
     artCraftFee: 0,
     karateFee: 0,
     lateFeeFine: 0,
-    others: {}, // 👈 dynamic
+    others: {}, 
     admissionFee: 0,
     annualCharges: 0,
     absentFine: 0,

@@ -125,7 +125,7 @@ export default function InvoicesDetails() {
     artCraftFee: "",
     karateFee: "",
     lateFeeFine: "",
-    others: { },
+    others: "",
     admissionFee: "",
     annualCharges: "",
     absentFine: "",
@@ -210,13 +210,16 @@ export default function InvoicesDetails() {
     { key: "booksCharges", label: "Books Charges" },
     { key: "registrationFee", label: "Registration Fee" },
     { key: "examFee", label: "Exam Fee" },
-    { key: "labsFee", label: "Labs Fee" },
+    { key: "labFee", label: "Labs Fee" },
     { key: "artCraftFee", label: "Art & Craft" },
     { key: "karateFee", label: "Karate Fee" },
     { key: "admissionFee", label: "Admission Fee" },
     { key: "lateFeeFine", label: "Late Fee / Fine" },
     { key: "annualCharges", label: "Annual Charges" },
-    { key: "otherCharges", label: "Other Charges" },
+    { key: "others", label: "Other Charges" },
+    { key: "miscellaneousFee", label: "miscellaneous Fee" },
+    { key: "Arrears", label: "Arrears" },
+    { key: "absentFine", label: "Absent Fine" },
   ];
 
   // Mapping to bridge Frontend Keys with API Response Keys
@@ -231,7 +234,8 @@ export default function InvoicesDetails() {
     admissionFee: "admissionFee",
     lateFeeFine: "lateFeeFine",
     annualCharges: "annualCharges",
-    otherCharges: "miscellaneousFee" // Mapping 'otherCharges' to 'miscellaneousFee'
+    otherCharges: "miscellaneousFee", // Mapping 'otherCharges' to 'miscellaneousFee'
+    miscellaneousFee: "miscellaneousFee",
   };
 
   if (authLoading) return <div className="min-h-screen flex justify-center items-center"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;

@@ -429,8 +429,7 @@ export default function StudentsPage() {
             </div>
           </div>
 
-          <StatsCards students={students} />
-        </div>
+         </div>
 
         {/* FiltersSection */}
         <FiltersSection

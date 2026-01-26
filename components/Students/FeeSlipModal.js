@@ -437,7 +437,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                 <p className="font-medium">{student.fatherName || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Fee</p>
+                <p className="text-sm text-gray-600">Tuition Fee</p>
                 <p className="font-medium text-green-600">
                   Rs. {student.allTotal?.toLocaleString() || '0'}
                 </p>

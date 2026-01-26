@@ -53,6 +53,10 @@ export default function ReportsDetails() {
 
       const response = await getDailyReportAPI(payload);
       setReportData(response);
+      // Update bfAmount with response value
+      if (response && response.calculations) {
+        setBfAmount(response.calculations.bfAmount || 0);
+      }
     } catch (error) {
       console.error(error);
       alert("Report generation failed. Please try again.");
@@ -64,7 +68,7 @@ export default function ReportsDetails() {
   useEffect(() => {
     fetchReport();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Initial load (defaults to Today)
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -72,7 +76,221 @@ export default function ReportsDetails() {
   };
 
   const handlePrint = () => {
-    window.print();
+    const printContent = printRef.current;
+    const printWindow = window.open('', '_blank');
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Cash Report - Print</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          @page {
+            size: A4;
+            margin: 10mm;
+          }
+          
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #000;
+            background: #fff;
+            padding: 0;
+            width: 210mm;
+            max-width: 100%;
+          }
+          
+          .print-container {
+            width: 100%;
+            padding: 0;
+          }
+          
+          .print-header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+          }
+          
+          .print-header h1 {
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+          }
+          
+          .print-header .info {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 11px;
+            font-weight: 500;
+          }
+          
+          .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+          }
+          
+          .card {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+          }
+          
+          .card-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            font-weight: 600;
+          }
+          
+          .card-value {
+            font-size: 16px;
+            font-weight: bold;
+          }
+          
+          .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            background: #f0f0f0;
+            padding: 6px 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid #000;
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+          }
+          
+          th {
+            background: #f8f8f8;
+            font-weight: 600;
+            text-align: left;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            font-size: 11px;
+          }
+          
+          td {
+            padding: 5px 8px;
+            border: 1px solid #ddd;
+            font-size: 11px;
+          }
+          
+          .text-right {
+            text-align: right;
+          }
+          
+          .text-center {
+            text-align: center;
+          }
+          
+          .total-row {
+            background: #f8f8f8;
+            font-weight: bold;
+          }
+          
+          .breakdown-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+          }
+          
+          .final-calculation {
+            border-top: 2px solid #000;
+            padding-top: 15px;
+            margin-top: 20px;
+          }
+          
+          .calculation-box {
+            max-width: 300px;
+            margin-left: auto;
+            background: #f8f8f8;
+            padding: 12px;
+            border: 1px solid #ddd;
+          }
+          
+          .calc-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 11px;
+          }
+          
+          .calc-total {
+            font-weight: bold;
+            font-size: 14px;
+            border-top: 1px solid #000;
+            padding-top: 8px;
+            margin-top: 8px;
+          }
+          
+          .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #000;
+          }
+          
+          .signature-box {
+            width: 200px;
+            text-align: center;
+          }
+          
+          .signature-line {
+            border-top: 1px solid #000;
+            margin-top: 30px;
+            padding-top: 5px;
+            font-size: 10px;
+          }
+          
+          @media print {
+            body {
+              width: 100%;
+              margin: 0;
+              padding: 0;
+            }
+            
+            .print-container {
+              padding: 0;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-container">
+          ${printRef.current.innerHTML}
+        </div>
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() {
+              window.close();
+            }, 100);
+          }
+        </script>
+      </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
   };
 
   // Helper to format currency
@@ -83,40 +301,48 @@ export default function ReportsDetails() {
   // Helper to calculate fee categories from the payments array
   const calculateFeeCategory = (payments, type) => {
     if (!payments) return 0;
-    // Specific Logic for Columns
     if (type === 'Tuition') return payments.filter(p => p.feeType === 'Tuition Fee').reduce((acc, curr) => acc + curr.amount, 0);
     if (type === 'Books') return payments.filter(p => p.feeType === 'Books Charges').reduce((acc, curr) => acc + curr.amount, 0);
     if (type === 'Exam') return payments.filter(p => p.feeType === 'Exam Fee').reduce((acc, curr) => acc + curr.amount, 0);
     
-    // "Others" includes everything NOT in the above list
     const excluded = ['Tuition Fee', 'Books Charges', 'Exam Fee'];
     return payments.filter(p => !excluded.includes(p.feeType)).reduce((acc, curr) => acc + curr.amount, 0);
   };
 
+  // Helper to format date for display
+  const formatDateDisplay = () => {
+    if (!reportData?.filterInfo) return filterType;
+    
+    if (reportData.filterInfo.dateRange?.humanReadable) {
+      return reportData.filterInfo.dateRange.humanReadable;
+    }
+    
+    return filterType.charAt(0).toUpperCase() + filterType.slice(1);
+  };
+
   return (
     <AppLayout>
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-6xl mx-auto space-y-6">
-
-          {/* --- New Filter UI --- */}
-          <div className="bg-white p-6 rounded-lg shadow-md print-hide border border-gray-100">
-            <div className="flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+      <div className="min-h-screen bg-gray-50 p-4 print:p-0">
+        <div className="max-w-7xl mx-auto space-y-4 print:max-w-none print:mx-0">
+          {/* --- Filter UI --- */}
+          <div className="bg-white p-4 rounded-lg shadow print:hidden border border-gray-200">
+            <div className="flex justify-between items-center mb-3">
+              <h1 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 Generate Report
               </h1>
             </div>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 
-                {/* 1. Filter Type Selector */}
-                <div className="col-span-1">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Report Type</label>
+                {/* Filter Type Selector */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase">Report Type</label>
                   <select 
                     value={filterType} 
                     onChange={(e) => setFilterType(e.target.value)}
-                    className="w-full mt-1 border border-gray-300 px-3 py-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50"
+                    className="w-full mt-1 border border-gray-300 px-3 py-2 rounded text-sm"
                   >
                     <option value="today">Today</option>
                     <option value="yesterday">Yesterday</option>
@@ -129,83 +355,89 @@ export default function ReportsDetails() {
                   </select>
                 </div>
 
-                {/* 2. Dynamic Inputs based on Filter Type */}
-                <div className="col-span-1 md:col-span-2">
-                  {/* Specific Date */}
+                {/* Dynamic Inputs */}
+                <div className="md:col-span-2">
                   {filterType === 'specific' && (
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Select Date</label>
-                      <input type="date" value={specificDate} onChange={(e) => setSpecificDate(e.target.value)} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none" required />
+                      <label className="text-xs font-semibold text-gray-500 uppercase">Select Date</label>
+                      <input type="date" value={specificDate} onChange={(e) => setSpecificDate(e.target.value)} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded text-sm" required />
                     </div>
                   )}
 
-                  {/* Date Range */}
                   {filterType === 'dateRange' && (
                     <div className="flex gap-2">
                       <div className="w-1/2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">From</label>
-                        <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({...dateRange, startDate: e.target.value})} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none" required />
+                        <label className="text-xs font-semibold text-gray-500 uppercase">From</label>
+                        <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({...dateRange, startDate: e.target.value})} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded text-sm" required />
                       </div>
                       <div className="w-1/2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">To</label>
-                        <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({...dateRange, endDate: e.target.value})} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none" required />
+                        <label className="text-xs font-semibold text-gray-500 uppercase">To</label>
+                        <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({...dateRange, endDate: e.target.value})} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded text-sm" required />
                       </div>
                     </div>
                   )}
 
-                  {/* Specific Month */}
                   {filterType === 'specificMonth' && (
                     <div className="flex gap-2">
                       <div className="w-1/2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Month</label>
-                        <select value={monthFilter.month} onChange={(e) => setMonthFilter({...monthFilter, month: e.target.value})} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded-md outline-none">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Month</label>
+                        <select value={monthFilter.month} onChange={(e) => setMonthFilter({...monthFilter, month: e.target.value})} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded text-sm">
                           {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => (
                             <option key={m} value={m}>{m}</option>
                           ))}
                         </select>
                       </div>
                       <div className="w-1/2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Year</label>
-                        <input type="number" value={monthFilter.year} onChange={(e) => setMonthFilter({...monthFilter, year: e.target.value})} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded-md outline-none" />
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Year</label>
+                        <input type="number" value={monthFilter.year} onChange={(e) => setMonthFilter({...monthFilter, year: e.target.value})} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded text-sm" />
                       </div>
                     </div>
                   )}
 
-                  {/* Placeholder for preset filters */}
                   {['today', 'yesterday', 'thisMonth', 'lastMonth', 'thisYear'].includes(filterType) && (
-                    <div className="flex items-center h-full pt-6 text-sm text-gray-400 italic">
+                    <div className="flex items-center h-full pt-6 text-sm text-gray-500">
                       Automated date selection for {filterType.replace(/([A-Z])/g, ' $1').toLowerCase()}.
                     </div>
                   )}
                 </div>
 
-                {/* 3. Opening Balance */}
-                <div className="col-span-1">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Opening Balance (B.F)</label>
+                {/* Opening Balance */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase">Opening Balance (B.F)</label>
                   <input
                     type="number"
                     value={bfAmount}
                     onChange={(e) => setBfAmount(e.target.value)}
-                    className="w-full mt-1 border border-gray-300 px-3 py-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full mt-1 border border-gray-300 px-3 py-2 rounded text-sm"
                     placeholder="0"
                   />
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 border-t pt-4">
+              <div className="flex justify-end gap-2 border-t pt-3">
                 <button
                   type="submit"
-                  className="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-md transition-colors flex items-center gap-2"
+                  className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded text-sm flex items-center gap-2"
+                  disabled={loading}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                  Generate Report
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                      Generate Report
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
                   onClick={handlePrint}
-                  disabled={!reportData}
-                  className={`px-6 py-2 rounded-md transition-colors flex items-center gap-2 ${reportData ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                  disabled={!reportData || loading}
+                  className={`px-4 py-2 rounded text-sm flex items-center gap-2 ${reportData && !loading ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                   Print Report
@@ -214,215 +446,263 @@ export default function ReportsDetails() {
             </form>
           </div>
 
-          {/* --- Report Display Area --- */}
+          {/* --- Loading Spinner --- */}
           {loading && (
-            <div className="flex justify-center items-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="flex justify-center items-center py-16">
+              <div className="flex flex-col items-center gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p className="text-gray-600">Generating report...</p>
+              </div>
             </div>
           )}
 
+          {/* --- Report Display Area --- */}
           {!loading && reportData && (
-            <div ref={printRef} className="bg-white p-8 rounded shadow print-area">
+            <div ref={printRef} className="bg-white p-4 print:p-0 rounded print:shadow-none print:border-0">
               
-              {/* Header */}
-              <div className="text-center border-b-2 border-gray-800 pb-4 mb-6">
-                <h2 className="text-3xl font-extrabold text-gray-900 uppercase tracking-wide">Cash Report</h2>
-                <div className="flex justify-center gap-6 mt-2 text-sm text-gray-600 font-medium">
-                   {/* Uses filterInfo from new API response */}
-                   <span>Period: {reportData.filterInfo?.dateRange?.humanReadable || filterType}</span>
-                   <span>Report ID: #{reportData.campusId?.slice(-6).toUpperCase()}</span>
+              {/* Header - Print Optimized */}
+              <div className="text-center border-b-2 border-gray-800 pb-3 mb-4 print:pb-2 print:mb-3">
+                <h1 className="text-xl print:text-2xl font-bold text-gray-900 uppercase tracking-tight">Cash Report</h1>
+                <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-6 mt-1 print:mt-2 text-xs print:text-sm text-gray-600">
+                  <span className="font-medium">Period: {formatDateDisplay()}</span>
+                  <span className="font-medium">Generated: {new Date().toLocaleDateString()}</span>
+                  <span className="font-medium">Report ID: {reportData.campusId?.slice(-6).toUpperCase()}</span>
                 </div>
               </div>
 
-              {/* Top Summary Cards */}
-              <div className="grid grid-cols-4 gap-4 mb-6 text-center">
-                <div className="p-3 bg-gray-50 border rounded">
-                    <p className="text-xs text-gray-500 uppercase">Brought Forward</p>
-                    <p className="text-lg font-bold text-gray-800">{formatCurrency(reportData.calculations.bfAmount)}</p>
+              {/* Top Summary Cards - Print Optimized */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 print:mb-3">
+                <div className="p-2 border border-gray-300 rounded print:p-2">
+                  <p className="text-xs print:text-xs text-gray-500 uppercase font-semibold">Brought Forward</p>
+                  <p className="text-base print:text-lg font-bold text-gray-800">{formatCurrency(reportData.calculations.bfAmount)}</p>
                 </div>
-                <div className="p-3 bg-green-50 border border-green-100 rounded">
-                    <p className="text-xs text-green-600 uppercase">Total Income</p>
-                    <p className="text-lg font-bold text-green-700">{formatCurrency(reportData.income.totalIncome)}</p>
+                <div className="p-2 bg-green-50 border border-green-200 rounded print:p-2">
+                  <p className="text-xs print:text-xs text-green-600 uppercase font-semibold">Total Income</p>
+                  <p className="text-base print:text-lg font-bold text-green-700">{formatCurrency(reportData.income.totalIncome)}</p>
                 </div>
-                <div className="p-3 bg-red-50 border border-red-100 rounded">
-                    <p className="text-xs text-red-600 uppercase">Total Expense</p>
-                    <p className="text-lg font-bold text-red-700">{formatCurrency(reportData.expenses.totalExpense)}</p>
+                <div className="p-2 bg-red-50 border border-red-200 rounded print:p-2">
+                  <p className="text-xs print:text-xs text-red-600 uppercase font-semibold">Total Expense</p>
+                  <p className="text-base print:text-lg font-bold text-red-700">{formatCurrency(reportData.expenses.totalExpense)}</p>
                 </div>
-                <div className="p-3 bg-blue-50 border border-blue-100 rounded">
-                    <p className="text-xs text-blue-600 uppercase">Cash In Hand</p>
-                    <p className="text-xl font-bold text-blue-800">{formatCurrency(reportData.calculations.cashInHand)}</p>
+                <div className="p-2 bg-blue-50 border border-blue-200 rounded print:p-2">
+                  <p className="text-xs print:text-xs text-blue-600 uppercase font-semibold">Cash In Hand</p>
+                  <p className="text-lg print:text-xl font-bold text-blue-800">{formatCurrency(reportData.calculations.cashInHand)}</p>
                 </div>
               </div>
 
-              {/* Middle Section: Income Breakdown & Class Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {/* Middle Section - Print Optimized */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 print:mb-3">
                 
                 {/* Income Head-wise */}
-                <div>
-                    <h3 className="text-sm font-bold bg-gray-200 p-2 mb-2 border-l-4 border-gray-800">Income Breakdown (Head-wise)</h3>
-                    <table className="w-full text-sm border-collapse">
-                        <tbody>
-                            {Object.entries(reportData.income.breakdown).map(([key, value]) => (
-                                value > 0 && (
-                                    <tr key={key} className="border-b border-gray-100">
-                                        <td className="py-1 capitalize text-gray-600">{key}</td>
-                                        <td className="py-1 text-right font-medium">{formatCurrency(value)}</td>
-                                    </tr>
-                                )
-                            ))}
-                            <tr className="bg-gray-50 font-bold">
-                                <td className="py-2">Total Collected</td>
-                                <td className="py-2 text-right">{formatCurrency(reportData.income.totalIncome)}</td>
+                <div className="break-inside-avoid">
+                  <h3 className="text-xs print:text-sm font-bold bg-gray-100 p-2 mb-1 border-l-4 border-gray-800">Income Breakdown (Head-wise)</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs print:text-xs">
+                      <tbody>
+                        {Object.entries(reportData.income.breakdown).map(([key, value]) => (
+                          value > 0 && (
+                            <tr key={key} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="py-1 px-2 capitalize text-gray-700">{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</td>
+                              <td className="py-1 px-2 text-right font-medium">{formatCurrency(value)}</td>
                             </tr>
-                        </tbody>
+                          )
+                        ))}
+                        <tr className="bg-gray-100 font-bold">
+                          <td className="py-2 px-2 text-gray-900">Total Collected</td>
+                          <td className="py-2 px-2 text-right text-gray-900">{formatCurrency(reportData.income.totalIncome)}</td>
+                        </tr>
+                      </tbody>
                     </table>
+                  </div>
                 </div>
 
                 {/* Class Wise Summary */}
-                <div>
-                    <h3 className="text-sm font-bold bg-gray-200 p-2 mb-2 border-l-4 border-gray-800">Class Wise Collection</h3>
-                    <table className="w-full text-sm border-collapse">
-                        <thead className="text-left text-gray-500 border-b">
-                            <tr>
-                                <th className="pb-1 font-medium">Class Name</th>
-                                <th className="pb-1 font-medium text-center">Students</th>
-                                <th className="pb-1 font-medium text-right">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {reportData.classWiseSummary.map((cls, idx) => (
-                                <tr key={idx} className="border-b border-gray-100">
-                                    <td className="py-1 text-gray-800">{cls.className}</td>
-                                    <td className="py-1 text-center">{cls.studentCount}</td>
-                                    <td className="py-1 text-right font-medium">{formatCurrency(cls.totalAmount)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-              </div>
-
-              {/* Detailed Student List */}
-              <div className="mb-8">
-                <h3 className="text-sm font-bold bg-gray-800 text-white p-2 mb-0">Detailed Student Collection</h3>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-left border border-gray-200">
-                        <thead className="bg-gray-100 text-gray-700 uppercase font-medium">
-                            <tr>
-                                <th className="px-3 py-2 border-b">Rec #</th>
-                                <th className="px-3 py-2 border-b">Student Info</th>
-                                <th className="px-3 py-2 border-b">Class</th>
-                                <th className="px-3 py-2 border-b text-right">Tuition</th>
-                                <th className="px-3 py-2 border-b text-right">Books</th>
-                                <th className="px-3 py-2 border-b text-right">Exam</th>
-                                <th className="px-3 py-2 border-b text-right">Others</th>
-                                <th className="px-3 py-2 border-b text-right bg-gray-50">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {reportData.studentWiseCollection.map((student, index) => {
-                                // Calculate columns dynamically based on payments array
-                                const tuitionAmt = calculateFeeCategory(student.payments, 'Tuition');
-                                const booksAmt = calculateFeeCategory(student.payments, 'Books');
-                                const examAmt = calculateFeeCategory(student.payments, 'Exam');
-                                const otherAmt = calculateFeeCategory(student.payments, 'Others');
-
-                                // Get Record ID (using first payment's record ID as reference or generating one)
-                                const recId = student.payments?.[0]?.recordId?.slice(-4).toUpperCase() || index + 1;
-
-                                return (
-                                    <tr key={index} className="hover:bg-gray-50">
-                                        <td className="px-3 py-2 text-gray-500">...{recId}</td>
-                                        <td className="px-3 py-2">
-                                            <p className="font-bold text-gray-800">{student.studentName}</p>
-                                            <p className="text-[10px] text-gray-500">F: {student.fatherName}</p>
-                                        </td>
-                                        <td className="px-3 py-2">{student.className}</td>
-                                        <td className="px-3 py-2 text-right text-gray-600">{tuitionAmt > 0 ? tuitionAmt : '-'}</td>
-                                        <td className="px-3 py-2 text-right text-gray-600">{booksAmt > 0 ? booksAmt : '-'}</td>
-                                        <td className="px-3 py-2 text-right text-gray-600">{examAmt > 0 ? examAmt : '-'}</td>
-                                        <td className="px-3 py-2 text-right text-gray-600">{otherAmt > 0 ? otherAmt : '-'}</td>
-                                        <td className="px-3 py-2 text-right font-bold text-gray-900 bg-gray-50">{formatCurrency(student.totalPaid)}</td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                        <tfoot className="bg-gray-100 font-bold">
-                            <tr>
-                                <td colSpan="7" className="px-3 py-2 text-right">Total Collection:</td>
-                                <td className="px-3 py-2 text-right text-green-700">{formatCurrency(reportData.income.totalIncome)}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-              </div>
-
-              {/* Expenses Section */}
-              <div className="mb-6">
-                <h3 className="text-sm font-bold bg-gray-800 text-white p-2 mb-0">Expenses</h3>
-                <table className="w-full text-sm border border-gray-200">
-                    <thead className="bg-gray-100 text-gray-700">
-                        <tr>
-                            <th className="px-4 py-2 text-left border-b">Expense Title</th>
-                            <th className="px-4 py-2 text-left border-b">Time/Date</th>
-                            <th className="px-4 py-2 text-right border-b">Amount</th>
+                <div className="break-inside-avoid">
+                  <h3 className="text-xs print:text-sm font-bold bg-gray-100 p-2 mb-1 border-l-4 border-gray-800">Class Wise Collection</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs print:text-xs">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="px-2 py-1 text-left font-medium text-gray-700">Class Name</th>
+                          <th className="px-2 py-1 text-center font-medium text-gray-700">Students</th>
+                          <th className="px-2 py-1 text-right font-medium text-gray-700">Amount</th>
                         </tr>
+                      </thead>
+                      <tbody>
+                        {reportData.classWiseSummary.map((cls, idx) => (
+                          <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="px-2 py-1 font-medium text-gray-800">{cls.className}</td>
+                            <td className="px-2 py-1 text-center">{cls.studentCount}</td>
+                            <td className="px-2 py-1 text-right font-medium">{formatCurrency(cls.totalAmount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detailed Student List - Print Optimized */}
+              <div className="mb-4 print:mb-3 break-inside-avoid">
+                <h3 className="text-xs print:text-sm font-bold bg-gray-800 text-white p-2">Detailed Student Collection</h3>
+                <div className="overflow-x-auto print:overflow-visible">
+                  <table className="w-full min-w-full text-xs print:text-xs border border-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-2 py-1 border font-medium">#</th>
+                        <th className="px-2 py-1 border font-medium">Student Info</th>
+                        <th className="px-2 py-1 border font-medium text-center">Class</th>
+                        <th className="px-2 py-1 border font-medium text-right">Tuition</th>
+                        <th className="px-2 py-1 border font-medium text-right">Books</th>
+                        <th className="px-2 py-1 border font-medium text-right">Exam</th>
+                        <th className="px-2 py-1 border font-medium text-right">Others</th>
+                        <th className="px-2 py-1 border font-medium text-right bg-gray-100">Total</th>
+                      </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {reportData.expenses.details.length > 0 ? (
-                            reportData.expenses.details.map((exp, idx) => (
-                                <tr key={idx}>
-                                    <td className="px-4 py-2 font-medium text-gray-800">
-                                      {exp.title}
-                                      {exp.description && <span className="text-gray-500 text-xs ml-2">({exp.description})</span>}
-                                    </td>
-                                    <td className="px-4 py-2 text-gray-500 text-xs">
-                                        {new Date(exp.time).toLocaleString([], {month:'short', day:'numeric', hour: '2-digit', minute:'2-digit'})}
-                                    </td>
-                                    <td className="px-4 py-2 text-right font-bold text-red-600">{formatCurrency(exp.amount)}</td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr><td colSpan="3" className="text-center py-2 text-gray-500">No expenses recorded for this period.</td></tr>
-                        )}
-                    </tbody>
-                    <tfoot className="bg-gray-50 font-bold">
-                        <tr>
-                           <td colSpan="2" className="px-4 py-2 text-right">Total Expense:</td>
-                           <td className="px-4 py-2 text-right text-red-700">{formatCurrency(reportData.expenses.totalExpense)}</td> 
-                        </tr>
-                    </tfoot>
-                </table>
-              </div>
+                    <tbody>
+                      {reportData.studentWiseCollection.map((student, index) => {
+                        const tuitionAmt = calculateFeeCategory(student.payments, 'Tuition');
+                        const booksAmt = calculateFeeCategory(student.payments, 'Books');
+                        const examAmt = calculateFeeCategory(student.payments, 'Exam');
+                        const otherAmt = calculateFeeCategory(student.payments, 'Others');
+                        const recId = student.payments?.[0]?.recordId?.slice(-4).toUpperCase() || (index + 1).toString().padStart(3, '0');
 
-              {/* Final Footer Calculation */}
-              <div className="mt-8 border-t-2 border-gray-800 pt-4 flex justify-end">
-                <div className="w-full md:w-1/3 bg-gray-50 p-4 rounded border border-gray-200 space-y-2">
-                    <div className="flex justify-between text-sm text-gray-600">
-                        <span>Brought Forward:</span>
-                        <span>{formatCurrency(reportData.calculations.bfAmount)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-gray-600">
-                        <span>+ Total Income:</span>
-                        <span>{formatCurrency(reportData.income.totalIncome)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-gray-600 border-b border-gray-300 pb-2">
-                        <span>- Total Expense:</span>
-                        <span>{formatCurrency(reportData.expenses.totalExpense)}</span>
-                    </div>
-                    <div className="flex justify-between text-xl font-bold text-gray-900 pt-1">
-                        <span>Net Cash In Hand:</span>
-                        <span className={reportData.calculations.cashInHand < 0 ? 'text-red-600' : 'text-gray-900'}>
-                          {formatCurrency(reportData.calculations.cashInHand)}
-                        </span>
-                    </div>
+                        return (
+                          <tr key={index} className="hover:bg-gray-50 print:hover:bg-white">
+                            <td className="px-2 py-1 border text-gray-600 font-mono">{recId}</td>
+                            <td className="px-2 py-1 border">
+                              <div>
+                                <p className="font-medium text-gray-800">{student.studentName}</p>
+                                <p className="text-[10px] print:text-[9px] text-gray-500">Father: {student.fatherName}</p>
+                              </div>
+                            </td>
+                            <td className="px-2 py-1 border text-center">{student.className}</td>
+                            <td className="px-2 py-1 border text-right">{tuitionAmt > 0 ? formatCurrency(tuitionAmt) : '-'}</td>
+                            <td className="px-2 py-1 border text-right">{booksAmt > 0 ? formatCurrency(booksAmt) : '-'}</td>
+                            <td className="px-2 py-1 border text-right">{examAmt > 0 ? formatCurrency(examAmt) : '-'}</td>
+                            <td className="px-2 py-1 border text-right">{otherAmt > 0 ? formatCurrency(otherAmt) : '-'}</td>
+                            <td className="px-2 py-1 border text-right font-bold bg-gray-50">{formatCurrency(student.totalPaid)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot className="bg-gray-100">
+                      <tr>
+                        <td colSpan="7" className="px-2 py-1 border text-right font-bold">Total Collection:</td>
+                        <td className="px-2 py-1 border text-right font-bold text-green-700">{formatCurrency(reportData.income.totalIncome)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
               </div>
 
-              {/* Signatures Area for Print */}
-              <div className="hidden print:flex justify-between mt-16 pt-8">
-                 <div className="border-t border-gray-400 w-1/4 text-center text-sm text-gray-600">Accountant Signature</div>
-                 <div className="border-t border-gray-400 w-1/4 text-center text-sm text-gray-600">Principal Signature</div>
+              {/* Expenses Section - Print Optimized */}
+              <div className="mb-4 print:mb-3 break-inside-avoid">
+                <h3 className="text-xs print:text-sm font-bold bg-gray-800 text-white p-2">Expenses Details</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs print:text-xs border border-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-2 py-1 border font-medium">Expense Title</th>
+                        <th className="px-2 py-1 border font-medium">Description</th>
+                        <th className="px-2 py-1 border font-medium text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportData.expenses.details.length > 0 ? (
+                        reportData.expenses.details.map((exp, idx) => (
+                          <tr key={idx} className="border-b border-gray-100 hover:bg-red-50">
+                            <td className="px-2 py-1 border font-medium text-gray-800">{exp.title}</td>
+                            <td className="px-2 py-1 border text-gray-600 text-xs">{exp.description || '-'}</td>
+                            <td className="px-2 py-1 border text-right font-bold text-red-600">{formatCurrency(exp.amount)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="3" className="px-2 py-2 border text-center text-gray-500">No expenses recorded for this period.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                    <tfoot className="bg-gray-100">
+                      <tr>
+                        <td colSpan="2" className="px-2 py-1 border text-right font-bold">Total Expense:</td>
+                        <td className="px-2 py-1 border text-right font-bold text-red-700">{formatCurrency(reportData.expenses.totalExpense)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+
+              {/* Final Calculation - Print Optimized */}
+              <div className="mt-4 print:mt-6 pt-3 print:pt-4 border-t-2 border-gray-800">
+                <div className="max-w-md ml-auto">
+                  <div className="bg-gray-50 p-3 print:p-4 border border-gray-200 rounded">
+                    <div className="space-y-1 print:space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs print:text-sm text-gray-600">Brought Forward:</span>
+                        <span className="text-xs print:text-sm font-medium">{formatCurrency(reportData.calculations.bfAmount)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs print:text-sm text-gray-600">+ Total Income:</span>
+                        <span className="text-xs print:text-sm font-medium text-green-600">{formatCurrency(reportData.income.totalIncome)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs print:text-sm text-gray-600">- Total Expense:</span>
+                        <span className="text-xs print:text-sm font-medium text-red-600">{formatCurrency(reportData.expenses.totalExpense)}</span>
+                      </div>
+                      <div className="border-t border-gray-300 pt-2 print:pt-3 mt-2 print:mt-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm print:text-base font-bold text-gray-900">Net Cash In Hand:</span>
+                          <span className={`text-base print:text-lg font-bold ${reportData.calculations.cashInHand < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                            {formatCurrency(reportData.calculations.cashInHand)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Statistics Section - Print Optimized */}
+              {reportData.statistics && (
+                <div className="mt-4 print:mt-6 pt-3 print:pt-4 border-t border-gray-300">
+                  <h3 className="text-xs print:text-sm font-bold mb-2">Statistics</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs print:text-xs">
+                    <div className="bg-gray-50 p-2 rounded border">
+                      <p className="font-medium text-gray-600 mb-1">Highest Paying Student</p>
+                      <p className="font-bold text-gray-900">{reportData.statistics.highestPayingStudent?.studentName}</p>
+                      <p className="text-gray-500">Class: {reportData.statistics.highestPayingStudent?.className}</p>
+                      <p className="text-green-600 font-medium">Amount: {formatCurrency(reportData.statistics.highestPayingStudent?.totalPaid)}</p>
+                    </div>
+                    <div className="bg-gray-50 p-2 rounded border">
+                      <p className="font-medium text-gray-600 mb-1">Highest Collection Class</p>
+                      <p className="font-bold text-gray-900 text-xl">{reportData.statistics.highestCollectionClass}</p>
+                      <p className="text-gray-500">Total Students: {reportData.summary?.totalStudentsPaid}</p>
+                      <p className="text-blue-600 font-medium">Total Payments: {reportData.summary?.totalPayments}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Signatures - Only for Print */}
+              <div className="hidden print:block mt-8 print:mt-12 pt-4 print:pt-6 border-t border-gray-300">
+                <div className="flex justify-between">
+                  <div className="text-center" style={{width: '200px'}}>
+                    <div className="border-t border-gray-400 mt-8 pt-2">
+                      <p className="text-xs font-medium">Accountant Signature</p>
+                    </div>
+                  </div>
+                  <div className="text-center" style={{width: '200px'}}>
+                    <div className="border-t border-gray-400 mt-8 pt-2">
+                      <p className="text-xs font-medium">Principal Signature</p>
+                    </div>
+                  </div>
+                  <div className="text-center" style={{width: '200px'}}>
+                    <div className="border-t border-gray-400 mt-8 pt-2">
+                      <p className="text-xs font-medium">School Stamp</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
             </div>
@@ -432,13 +712,56 @@ export default function ReportsDetails() {
 
       <style jsx global>{`
         @media print {
-          @page { margin: 10mm; size: A4; }
-          body { -webkit-print-color-adjust: exact; }
-          .print-hide { display: none !important; }
-          .print-area { 
-            box-shadow: none; 
-            padding: 0; 
-            width: 100%;
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+          
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            background: white !important;
+            color: black !important;
+            font-size: 12px !important;
+          }
+          
+          .print\\:hidden {
+            display: none !important;
+          }
+          
+          .print-area {
+            box-shadow: none !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+          }
+          
+          table {
+            page-break-inside: auto !important;
+          }
+          
+          tr {
+            page-break-inside: avoid !important;
+            page-break-after: auto !important;
+          }
+          
+          thead {
+            display: table-header-group !important;
+          }
+          
+          tfoot {
+            display: table-footer-group !important;
+          }
+          
+          .break-inside-avoid {
+            page-break-inside: avoid !important;
+          }
+        }
+        
+        @media screen {
+          .print-only {
+            display: none !important;
           }
         }
       `}</style>

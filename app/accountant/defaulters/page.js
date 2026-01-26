@@ -4,6 +4,14 @@ import { getDefaulterStudentsAPI } from '../../../Services/studentService';
 import AppLayout from '../../../components/AppLayout';
 
 export default function DefaultersPage() {
+  const [summary, setSummary] = useState({
+    totalStudents: 0,
+    totalDefaulters: 0,
+    fullDefaulters: 0,
+    partialDefaulters: 0,
+    currentMonth: '',
+    previousMonth: ''
+  });
   const [defaulterStudents, setDefaulterStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,7 +20,7 @@ export default function DefaultersPage() {
   // Filter states
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSection, setSelectedSection] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedDefaulterType, setSelectedDefaulterType] = useState('');
 
   useEffect(() => {
     const fetchDefaulterStudents = async () => {
@@ -21,8 +29,9 @@ export default function DefaultersPage() {
         const response = await getDefaulterStudentsAPI();
 
         if (response.success) {
-          setDefaulterStudents(response.data);
-          setFilteredStudents(response.data);
+          setSummary(response.summary || {});
+          setDefaulterStudents(response.data || []);
+          setFilteredStudents(response.data || []);
         } else {
           setError('Failed to fetch defaulter students');
         }
@@ -46,8 +55,11 @@ export default function DefaultersPage() {
     student.student?.section || ''
   ))].filter(Boolean);
 
-  // Status options
-  const statusOptions = ['partial', 'paid', 'unpaid'];
+  // Defaulter type options based on API response
+  const defaulterTypeOptions = [
+    { value: 'partial_defaulter', label: 'Partial Defaulter' },
+    { value: 'full_defaulter', label: 'Full Defaulter' }
+  ];
 
   // Apply filters
   useEffect(() => {
@@ -65,41 +77,58 @@ export default function DefaultersPage() {
       );
     }
 
-    if (selectedStatus) {
+    if (selectedDefaulterType) {
       filtered = filtered.filter(student => 
-        student.status.toLowerCase() === selectedStatus.toLowerCase()
+        student.defaulterType === selectedDefaulterType
       );
     }
 
     setFilteredStudents(filtered);
-  }, [selectedClass, selectedSection, selectedStatus, defaulterStudents]);
+  }, [selectedClass, selectedSection, selectedDefaulterType, defaulterStudents]);
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+  const getDefaulterTypeDisplay = (type) => {
+    switch (type) {
+      case 'partial_defaulter':
+        return 'Partial Defaulter';
+      case 'full_defaulter':
+        return 'Full Defaulter';
+      default:
+        return type || 'N/A';
+    }
   };
 
-
-  const getStatusBadgeColor = (status) => {
-    switch (status.toLowerCase()) {
-      case 'partial':
+  const getDefaulterTypeBadgeColor = (type) => {
+    switch (type) {
+      case 'partial_defaulter':
         return 'bg-yellow-100 text-yellow-800';
-      case 'unpaid':
+      case 'full_defaulter':
         return 'bg-red-100 text-red-800';
-      case 'paid':
-        return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
+  // Calculate total unpaid amount
+  const calculateTotalUnpaid = () => {
+    return filteredStudents.reduce((total, student) => total + (student.totalUnpaid || 0), 0);
+  };
+
+  // Format months unpaid array to string
+  const formatMonthsUnpaid = (months) => {
+    if (!months || !Array.isArray(months)) return 'N/A';
+    return months.map(month => 
+      month.charAt(0).toUpperCase() + month.slice(1)
+    ).join(', ');
+  };
+
   // Print function
   const handlePrint = () => {
     const printContent = document.getElementById('printable-table').innerHTML;
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
     
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -126,6 +155,7 @@ export default function DefaultersPage() {
               .print-header .subtitle {
                 margin-top: 5px;
                 color: #666;
+                font-size: 14px;
               }
               .print-summary {
                 background: #f5f5f5;
@@ -133,6 +163,22 @@ export default function DefaultersPage() {
                 margin-bottom: 20px;
                 border-radius: 5px;
                 border: 1px solid #ddd;
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 10px;
+              }
+              .summary-item {
+                text-align: center;
+              }
+              .summary-label {
+                font-size: 12px;
+                color: #666;
+                margin-bottom: 5px;
+              }
+              .summary-value {
+                font-size: 18px;
+                font-weight: bold;
+                color: #000;
               }
               .print-table {
                 width: 100%;
@@ -163,11 +209,18 @@ export default function DefaultersPage() {
                 font-weight: 500;
                 display: inline-block;
               }
-              .status-partial { background-color: #fff3cd; color: #856404; }
-              .status-unpaid { background-color: #f8d7da; color: #721c24; }
-              .status-paid { background-color: #d4edda; color: #155724; }
-              .amount-paid { color: #28a745; font-weight: 500; }
-              .amount-remaining { color: #dc3545; font-weight: 500; }
+              .status-partial_defaulter { 
+                background-color: #fff3cd; 
+                color: #856404; 
+              }
+              .status-full_defaulter { 
+                background-color: #f8d7da; 
+                color: #721c24; 
+              }
+              .amount-unpaid { 
+                color: #dc3545; 
+                font-weight: 500; 
+              }
               .print-footer {
                 margin-top: 30px;
                 text-align: right;
@@ -189,15 +242,30 @@ export default function DefaultersPage() {
         <body>
           <div class="print-header">
             <h1>Defaulter Students Report</h1>
-            <div class="subtitle">Students with pending or partial fee payments</div>
+            <div class="subtitle">Generated on: ${currentDate}</div>
             <div class="print-summary">
-              Total Defaulters: ${filteredStudents.length} | 
-              Total Outstanding: Rs. ${filteredStudents.reduce((sum, student) => sum + student.remainingBalance, 0).toLocaleString()}
+              <div class="summary-item">
+                <div class="summary-label">Total Students</div>
+                <div class="summary-value">${summary.totalStudents || 0}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Total Defaulters</div>
+                <div class="summary-value">${filteredStudents.length}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Full Defaulters</div>
+                <div class="summary-value">${summary.fullDefaulters || 0}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Partial Defaulters</div>
+                <div class="summary-value">${summary.partialDefaulters || 0}</div>
+              </div>
             </div>
           </div>
           ${printContent}
           <div class="print-footer">
-            Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
+            Current Month: ${summary.currentMonth ? summary.currentMonth.charAt(0).toUpperCase() + summary.currentMonth.slice(1) : 'N/A'} | 
+            Total Outstanding: Rs. ${calculateTotalUnpaid().toLocaleString()}
           </div>
         </body>
       </html>
@@ -225,15 +293,17 @@ export default function DefaultersPage() {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-        <p>{error}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-        >
-          Retry
-        </button>
-      </div>
+      <AppLayout>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <p>{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </AppLayout>
     );
   }
 
@@ -244,7 +314,7 @@ export default function DefaultersPage() {
           <div>
             <h1 className="text-2xl font-bold mb-2">Defaulter Students</h1>
             <p className="text-gray-600">
-              Students with pending or partial fee payments
+              Students with pending fee payments for {summary.currentMonth ? summary.currentMonth.charAt(0).toUpperCase() + summary.currentMonth.slice(1) : 'current month'}
             </p>
           </div>
           
@@ -260,6 +330,26 @@ export default function DefaultersPage() {
               Print Report
             </button>
           )}
+        </div>
+
+        {/* Summary Cards */}
+        <div className="no-print grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="text-sm text-gray-500 mb-1">Total Students</div>
+            <div className="text-2xl font-bold text-gray-800">{summary.totalStudents || 0}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="text-sm text-gray-500 mb-1">Total Defaulters</div>
+            <div className="text-2xl font-bold text-red-600">{summary.totalDefaulters || 0}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="text-sm text-gray-500 mb-1">Full Defaulters</div>
+            <div className="text-2xl font-bold text-red-700">{summary.fullDefaulters || 0}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="text-sm text-gray-500 mb-1">Partial Defaulters</div>
+            <div className="text-2xl font-bold text-yellow-600">{summary.partialDefaulters || 0}</div>
+          </div>
         </div>
 
         {/* Filter Section */}
@@ -278,7 +368,7 @@ export default function DefaultersPage() {
                 <option value="">All Classes</option>
                 {uniqueClasses.map((className) => (
                   <option key={className} value={className}>
-                    {className}
+                    Class {className}
                   </option>
                 ))}
               </select>
@@ -297,26 +387,26 @@ export default function DefaultersPage() {
                 <option value="">All Sections</option>
                 {uniqueSections.map((section) => (
                   <option key={section} value={section}>
-                    {section}
+                    Section {section}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Status Filter */}
+            {/* Defaulter Type Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Filter by Status
+                Filter by Defaulter Type
               </label>
               <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                value={selectedDefaulterType}
+                onChange={(e) => setSelectedDefaulterType(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">All Status</option>
-                {statusOptions.map((status) => (
-                  <option key={status} value={status}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                <option value="">All Types</option>
+                {defaulterTypeOptions.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
                   </option>
                 ))}
               </select>
@@ -338,11 +428,16 @@ export default function DefaultersPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-blue-800 font-semibold">
-                    Total Defaulters: {filteredStudents.length}
+                    Showing {filteredStudents.length} of {defaulterStudents.length} defaulter students
                   </p>
                   <p className="text-blue-600 text-sm">
-                    Total Outstanding: Rs. {filteredStudents.reduce((sum, student) => sum + student.remainingBalance, 0)}
+                    Total Unpaid Amount: Rs. {calculateTotalUnpaid().toLocaleString()}
                   </p>
+                </div>
+                <div className="text-sm text-blue-600">
+                  Current Month: <span className="font-semibold">
+                    {summary.currentMonth ? summary.currentMonth.charAt(0).toUpperCase() + summary.currentMonth.slice(1) : 'N/A'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -353,30 +448,28 @@ export default function DefaultersPage() {
                 <thead>
                   <tr>
                     <th>Student Name</th>
-                    <th>Father&apos;s Name</th>
+                    <th>Father's Name</th>
                     <th>Class</th>
                     <th>Section</th>
-                    <th>Paid Amount</th>
-                    <th>Remaining Balance</th>
-                    <th>Status</th>
-                    <th>Created Date</th>
+                    <th>Total Unpaid</th>
+                    <th>Defaulter Type</th>
+                    <th>Months Unpaid</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredStudents.map((defaulter) => (
-                    <tr key={defaulter.defaulterId}>
-                      <td>{defaulter.student?.name || 'N/A'}</td>
-                      <td>{defaulter.student?.fatherName || 'N/A'}</td>
-                      <td>{defaulter.student?.className || 'N/A'}</td>
-                      <td>{defaulter.student?.section || 'N/A'}</td>
-                      <td className="amount-paid">Rs. {defaulter.paidAmount}</td>
-                      <td className="amount-remaining">Rs. {defaulter.remainingBalance}</td>
+                  {filteredStudents.map((student) => (
+                    <tr key={student.studentId}>
+                      <td>{student.student?.name || 'N/A'}</td>
+                      <td>{student.student?.fatherName || 'N/A'}</td>
+                      <td>{student.student?.className || 'N/A'}</td>
+                      <td>{student.student?.section || 'N/A'}</td>
+                      <td className="amount-unpaid">Rs. {student.totalUnpaid?.toLocaleString() || '0'}</td>
                       <td>
-                        <span className={`status-badge status-${defaulter.status.toLowerCase()}`}>
-                          {defaulter.status}
+                        <span className={`status-badge status-${student.defaulterType}`}>
+                          {getDefaulterTypeDisplay(student.defaulterType)}
                         </span>
                       </td>
-                      <td>{formatDate(defaulter.createdAt)}</td>
+                      <td>{formatMonthsUnpaid(student.monthsUnpaid)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -393,7 +486,7 @@ export default function DefaultersPage() {
                         Student Name
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Father&apos;s Name
+                        Father's Name
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Class
@@ -402,59 +495,53 @@ export default function DefaultersPage() {
                         Section
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Paid Amount
+                        Total Unpaid
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Remaining Balance
+                        Defaulter Type
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created Date
+                        Months Unpaid
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredStudents.map((defaulter) => (
-                      <tr key={defaulter.defaulterId} className="hover:bg-gray-50">
+                    {filteredStudents.map((student) => (
+                      <tr key={student.studentId} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            {defaulter.student?.name || 'N/A'}
+                            {student.student?.name || 'N/A'}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {defaulter.student?.fatherName || 'N/A'}
+                            {student.student?.fatherName || 'N/A'}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {defaulter.student?.className || 'N/A'}
+                            {student.student?.className || 'N/A'}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {defaulter.student?.section || 'N/A'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-green-600 font-medium">
-                            Rs. {(defaulter.paidAmount)}
+                            {student.student?.section || 'N/A'}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-red-600 font-medium">
-                            Rs. {(defaulter.remainingBalance)}
+                            Rs. {student.totalUnpaid?.toLocaleString() || '0'}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusBadgeColor(defaulter.status)}`}>
-                            {defaulter.status}
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getDefaulterTypeBadgeColor(student.defaulterType)}`}>
+                            {getDefaulterTypeDisplay(student.defaulterType)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(defaulter.createdAt)}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {formatMonthsUnpaid(student.monthsUnpaid)}
+                          </div>
                         </td>
                       </tr>
                     ))}

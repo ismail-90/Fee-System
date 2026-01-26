@@ -391,27 +391,6 @@ export default function AdminStudents() {
               </div>
             </div>
 
-            {/* Fee Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fee Status
-              </label>
-              <div className="relative">
-                <select
-                  value={feeStatusFilter}
-                  onChange={(e) => setFeeStatusFilter(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                >
-                  <option value="all">All Students</option>
-                  <option value="paid">Paid Only</option>
-                  <option value="defaulter">Defaulters Only</option>
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                  <Filter className="text-gray-400" size={20} />
-                </div>
-              </div>
-            </div>
-
             {/* Search Bar */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

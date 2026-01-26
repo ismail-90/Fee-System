@@ -27,12 +27,13 @@ export default function BulkInvoiceModal({
   const [error, setError] = useState("");
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [showDoubleMonthSelector, setShowDoubleMonthSelector] = useState(false);
+  const [doubleMonthInfo, setDoubleMonthInfo] = useState(false);
 
   // Dynamic months array
   const [feeMonths, setFeeMonths] = useState([]);
 
   // Fee breakdown state (Mirrors FeeSlipModal structure)
- const [feeBreakdown, setFeeBreakdown] = useState({
+  const [feeBreakdown, setFeeBreakdown] = useState({
     booksCharges: 0,
     registrationFee: 0,
     examFee: 0,
@@ -103,45 +104,46 @@ export default function BulkInvoiceModal({
       setIsInitialized(true);
     }
   }, [selectedStudentObjects, isInitialized]);
-const addOtherField = () => {
-  setFeeBreakdown(prev => ({
-    ...prev,
-    others: {
-      ...prev.others,
-      "": 0
-    }
-  }));
-};
 
-const updateOtherKey = (oldKey, newKey) => {
-  setFeeBreakdown(prev => {
-    const updated = { ...prev.others };
-    updated[newKey] = updated[oldKey];
-    delete updated[oldKey];
-    return { ...prev, others: updated };
-  });
-};
+  const addOtherField = () => {
+    setFeeBreakdown(prev => ({
+      ...prev,
+      others: {
+        ...prev.others,
+        "": 0
+      }
+    }));
+  };
 
-const updateOtherValue = (key, value) => {
-  const num = value === "" ? 0 : parseFloat(value);
-  if (isNaN(num)) return;
+  const updateOtherKey = (oldKey, newKey) => {
+    setFeeBreakdown(prev => {
+      const updated = { ...prev.others };
+      updated[newKey] = updated[oldKey];
+      delete updated[oldKey];
+      return { ...prev, others: updated };
+    });
+  };
 
-  setFeeBreakdown(prev => ({
-    ...prev,
-    others: {
-      ...prev.others,
-      [key]: num
-    }
-  }));
-};
+  const updateOtherValue = (key, value) => {
+    const num = value === "" ? 0 : parseFloat(value);
+    if (isNaN(num)) return;
 
-const removeOtherField = (key) => {
-  setFeeBreakdown(prev => {
-    const updated = { ...prev.others };
-    delete updated[key];
-    return { ...prev, others: updated };
-  });
-};
+    setFeeBreakdown(prev => ({
+      ...prev,
+      others: {
+        ...prev.others,
+        [key]: num
+      }
+    }));
+  };
+
+  const removeOtherField = (key) => {
+    setFeeBreakdown(prev => {
+      const updated = { ...prev.others };
+      delete updated[key];
+      return { ...prev, others: updated };
+    });
+  };
 
   // Helper: Format month string for API
   const formatMonthString = (monthWithYear) => {
@@ -177,6 +179,7 @@ const removeOtherField = (key) => {
   const handleDoubleMonthSelect = () => {
     setFeeMonthType("double");
     setShowDoubleMonthSelector(true);
+    setDoubleMonthInfo(true);
     const currentIndex = feeMonths.indexOf(feeMonth);
     if (currentIndex < feeMonths.length - 1) {
       setSecondMonth(feeMonths[currentIndex + 1]);
@@ -194,23 +197,42 @@ const removeOtherField = (key) => {
 
   // Calculate total
   const calculateTotal = () => {
-    return Object.values(feeBreakdown).reduce((sum, value) => {
-      const numValue = parseFloat(value) || 0;
-      return sum + numValue;
-    }, 0);
+    let total = 0;
+    
+    // Add all regular fee breakdown values
+    Object.values(feeBreakdown).forEach(value => {
+      if (typeof value === 'number') {
+        total += value;
+      }
+    });
+    
+    // Add others object values
+    if (feeBreakdown.others && typeof feeBreakdown.others === 'object') {
+      Object.values(feeBreakdown.others).forEach(value => {
+        total += parseFloat(value) || 0;
+      });
+    }
+    
+    return total;
   };
 
   // Calculate bulk total
   const calculateBulkTotal = () => {
-    return calculateTotal() * selectedStudentObjects.length;
+    const total = calculateTotal();
+    // For double month, multiply by 2
+    if (feeMonthType === "double") {
+      return total * 2 * selectedStudentObjects.length;
+    }
+    return total * selectedStudentObjects.length;
   };
 
   // Handle inputs
   const handleBreakdownChange = (field, value) => {
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
+      const numValue = value === '' ? 0 : parseFloat(value) || 0;
       setFeeBreakdown(prev => ({
         ...prev,
-        [field]: value
+        [field]: numValue
       }));
     }
   };
@@ -218,22 +240,22 @@ const removeOtherField = (key) => {
   // Reset function
   const resetBreakdown = () => {
     setFeeBreakdown({
-       
-        booksCharges: "",
-        registrationFee: "",
-        examFee: "",
-        labFee: "",
-        artCraftFee: "",
-        karateFee: "",
-        lateFeeFine: "",
-        others: "",
-        admissionFee: "",
-        annualCharges: "",
-        absentFine: "",
-        miscellaneousFee: "",
-        arrears: ""
-      });
-    setIsInitialized(false); // Will trigger the useEffect to re-calculate averages if needed
+      booksCharges: 0,
+      registrationFee: 0,
+      examFee: 0,
+      labFee: 0,
+      artCraftFee: 0,
+      karateFee: 0,
+      lateFeeFine: 0,
+      others: {},
+      admissionFee: 0,
+      annualCharges: 0,
+      absentFine: 0,
+      miscellaneousFee: 0,
+      arrears: 0
+    });
+    setDoubleMonthInfo(false);
+    setIsInitialized(false);
   };
 
   // Generate Action
@@ -247,21 +269,26 @@ const removeOtherField = (key) => {
       return;
     }
 
-    const total = calculateTotal();
-    if (total <= 0) {
-      setError("Please enter at least one fee amount greater than 0");
-      return;
-    }
-
     setGenerating(true);
     setError("");
 
     try {
-      // Process Breakdown: Convert empty strings to 0
+      // Process Breakdown - Ensure all values are numbers
       const processedFeeBreakdown = {};
       Object.entries(feeBreakdown).forEach(([key, value]) => {
-        processedFeeBreakdown[key] = parseFloat(value) || 0;
+        if (key !== 'others') {
+          processedFeeBreakdown[key] = typeof value === 'number' ? value : parseFloat(value) || 0;
+        }
       });
+      
+      // Add others fields
+      if (feeBreakdown.others && typeof feeBreakdown.others === 'object') {
+        Object.entries(feeBreakdown.others).forEach(([key, value]) => {
+          if (key.trim() !== '') {
+            processedFeeBreakdown[key] = parseFloat(value) || 0;
+          }
+        });
+      }
 
       const bulkData = {
         students: selectedStudentObjects.map(student => ({
@@ -269,7 +296,7 @@ const removeOtherField = (key) => {
           feeMonth: getApiMonthString()
         })),
         feeBreakdown: processedFeeBreakdown,
-        monthType: feeMonthType, // Add month type support
+        monthType: feeMonthType,
         year: getCurrentYear()
       };
 
@@ -290,6 +317,7 @@ const removeOtherField = (key) => {
     setError("");
     setFeeMonthType("single");
     setSecondMonth("");
+    setDoubleMonthInfo(false);
     resetBreakdown();
   };
 
@@ -310,6 +338,11 @@ const removeOtherField = (key) => {
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 Year: {getCurrentYear()}
               </span>
+              {feeMonthType === "double" && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  Double Month
+                </span>
+              )}
             </div>
           </div>
           <button onClick={() => { handleReset(); onClose(); }} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -326,14 +359,31 @@ const removeOtherField = (key) => {
                 <p className="font-medium font-mono">{selectedStudentObjects.length}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Average Fee Per Student</p>
+                <p className="text-sm text-gray-600">Fee Per Student</p>
                 <p className="font-medium text-green-600">Rs. {calculateTotal().toLocaleString()}</p>
+                {feeMonthType === "double" && (
+                  <p className="text-xs text-gray-500">(Per month: Rs. {calculateTotal().toLocaleString()})</p>
+                )}
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Bulk Amount</p>
                 <p className="font-medium text-blue-600">Rs. {calculateBulkTotal().toLocaleString()}</p>
+                {feeMonthType === "double" && (
+                  <p className="text-xs text-gray-500">(For 2 months)</p>
+                )}
               </div>
             </div>
+            
+            {/* Double Month Info Message */}
+            {doubleMonthInfo && feeMonthType === "double" && (
+              <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                <p className="text-sm text-purple-700 flex items-center gap-2">
+                  <span className="font-medium">Note:</span> 
+                  Please enter fee for <strong>one month only</strong>. System will automatically double it for both months.
+                </p>
+              </div>
+            )}
+            
             {/* Student Preview List */}
             <div className="mt-4 pt-3 border-t border-blue-200">
               <p className="text-xs text-gray-500 mb-2">Preview (First 5 students):</p>
@@ -357,6 +407,7 @@ const removeOtherField = (key) => {
                   setFeeMonthType("single");
                   setShowDoubleMonthSelector(false);
                   setSecondMonth("");
+                  setDoubleMonthInfo(false);
                 }}
                 className={`px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${feeMonthType === "single"
                     ? 'bg-linear-to-r from-blue-50 to-indigo-50 border-blue-500 text-blue-700 shadow-sm'
@@ -439,11 +490,9 @@ const removeOtherField = (key) => {
               </button>
             </div>
 
-         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {/* Column 1 - Tuition and Books */}
               <div className="space-y-4">
-              
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Books Charges
@@ -514,8 +563,6 @@ const removeOtherField = (key) => {
                     />
                   </div>
                 </div>
-
-                 
               </div>
 
               {/* Column 3 - Art, Craft, Karate */}
@@ -590,13 +637,11 @@ const removeOtherField = (key) => {
                     />
                   </div>
                 </div>
-
               </div>
             </div>
 
             {/* Additional Fee Section - Collapsible */}
             <div className="mt-6">
-
               <button
                 onClick={() => setShowBreakdown(!showBreakdown)}
                 className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
@@ -641,10 +686,9 @@ const removeOtherField = (key) => {
                     </div>
                   </div>
 
-                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                     absent Fine
+                      Absent Fine
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
@@ -658,55 +702,51 @@ const removeOtherField = (key) => {
                       />
                     </div>
                   </div>
-  <div className="space-y-3">
-  <div className="flex items-center justify-between">
-    <label className="text-sm font-medium text-gray-700">
-      Others (Custom Fees)
-    </label>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-gray-700">
+                        Others (Custom Fees)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={addOtherField}
+                        className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                      >
+                        + Add
+                      </button>
+                    </div>
 
-    <button
-      type="button"
-      onClick={addOtherField}
-      className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-    >
-      + Add
-    </button>
-  </div>
-
-{Object.entries(feeBreakdown.others || {}).map(([key, value], index) => (
-    <div key={index} className="grid grid-cols-12 gap-2 items-center">
-      
-      {/* Key */}
-      <input
-        type="text"
-        value={key}
-        onChange={(e) => updateOtherKey(key, e.target.value)}
-        placeholder="Fee name (e.g. Lab Fee)"
-        className="col-span-6 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-      />
-
-      {/* Value */}
-      <input
-        type="number"
-        value={value}
-        onChange={(e) => updateOtherValue(key, e.target.value)}
-        placeholder="Amount"
-        min="0"
-        className="col-span-4 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-      />
-
-      {/* Remove */}
-      <button
-        type="button"
-        onClick={() => removeOtherField(key)}
-        className="col-span-2 text-red-600 hover:bg-red-100 rounded-lg p-2"
-      >
-        ✕
-      </button>
-    </div>
-  ))}
-</div>
-                
+                    {Object.entries(feeBreakdown.others || {}).map(([key, value], index) => (
+                      <div key={index} className="grid grid-cols-12 gap-2 items-center">
+                        {/* Key */}
+                        <input
+                          type="text"
+                          value={key}
+                          onChange={(e) => updateOtherKey(key, e.target.value)}
+                          placeholder="Fee name (e.g. Lab Fee)"
+                          className="col-span-6 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                        {/* Value */}
+                        <input
+                          type="number"
+                          value={value}
+                          onChange={(e) => updateOtherValue(key, e.target.value)}
+                          placeholder="Amount"
+                          min="0"
+                          className="col-span-4 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                        {/* Remove */}
+                        <button
+                          type="button"
+                          onClick={() => removeOtherField(key)}
+                          className="col-span-2 text-red-600 hover:bg-red-100 rounded-lg p-2"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -726,7 +766,6 @@ const removeOtherField = (key) => {
                   </div>
                 </div>
               )}
- 
             </div>
           </div>
 

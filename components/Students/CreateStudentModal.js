@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from "react";
-import { X, PlusCircle, User, Loader2 } from "lucide-react";
+import { X, PlusCircle, User, Loader2, DollarSign, BookOpen, Calculator, Calendar } from "lucide-react";
 import { getCampusesAPI } from "../../Services/campusService";
 import { useAuth } from '../../context/AuthContext';
 import toast from "react-hot-toast";
@@ -20,107 +20,89 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
       campusId: "",
       section: "A"
     },
-    fee: {
-      ts: 0,
-      cs: 0,
+    fee: {  
       feeMonth: "",
       tutionFee: "",
-      labsFee: "",
-      lateFeeFine: "",
-      extraFee: "",
-      others: "",
-      examFeeTotal: "",
-      examFeeCurrentPaid: "",
-      examFeeBalanced: "",
-      karateFeeTotal: "",
-      karateFeeCurrentPaid: "",
-      karateFeeBalanced: "",
-      admissionFeeTotal: "",
-      admissionFeeCurrentPaid: "",
-      admissionFeeBalanced: "",
+      booksCharges: "",
       registrationFee: "",
-      annualChargesTotal: "",
-      annualChargesPaid: "",
-      annualChargesBalanced: "",
-      prevBal: "",
-      feePaid: "",
-      curBalance: "",
-      allTotal: "",
+      examFee: "",
+      session: "",
+      labFee: "",
+      artCraftFee: "",
+      karateFee: "",
+      lateFeeFine: "",
+      others: "",
+      admissionFee: "",
+      annualCharges: "",
+      absentFine: "",
+      miscellaneousFee: "",
+      arrears: ""
     }
   });
 
-  // Calculate totals when fee values change
+  // Calculate total fee when values change
   useEffect(() => {
-    const calculateTotals = () => {
+    const calculateTotal = () => {
       const {
-        tutionFee = "",
-        labsFee = "",
-        lateFeeFine = "",
-        extraFee = "",
-        others = "",
-        examFeeTotal = "",
-        examFeeCurrentPaid = "",
-        karateFeeTotal = "",
-        karateFeeCurrentPaid = "",
-        admissionFeeTotal = "",
-        admissionFeeCurrentPaid = "",
-        registrationFee = "",
-        annualChargesTotal = "",
-        annualChargesPaid = "",
-        prevBal = "",
-        feePaid = ""
+        tutionFee = 0,
+        booksCharges = 0,
+        registrationFee = 0,
+        examFee = 0,
+        labFee = 0,
+        artCraftFee = 0,
+        karateFee = 0,
+        lateFeeFine = 0,
+        others = 0,
+        admissionFee = 0,
+        annualCharges = 0,
+        absentFine = 0,
+        miscellaneousFee = 0,
+        arrears = 0
       } = formData.fee;
 
-      // Calculate balanced amounts
-      const examFeeBalanced = Math.max(0, examFeeTotal - examFeeCurrentPaid);
-      const karateFeeBalanced = Math.max(0, karateFeeTotal - karateFeeCurrentPaid);
-      const admissionFeeBalanced = Math.max(0, admissionFeeTotal - admissionFeeCurrentPaid);
-      const annualChargesBalanced = Math.max(0, annualChargesTotal - annualChargesPaid);
+      // Convert all to numbers
+      const numericValues = [
+        Number(tutionFee) || 0,
+        Number(booksCharges) || 0,
+        Number(registrationFee) || 0,
+        Number(examFee) || 0,
+        Number(labFee) || 0,
+        Number(artCraftFee) || 0,
+        Number(karateFee) || 0,
+        Number(lateFeeFine) || 0,
+        Number(others) || 0,
+        Number(admissionFee) || 0,
+        Number(annualCharges) || 0,
+        Number(absentFine) || 0,
+        Number(miscellaneousFee) || 0,
+        Number(arrears) || 0
+      ];
 
-      // Calculate current balance
-      const currentTotal = tutionFee + labsFee + lateFeeFine + extraFee + others + 
-                          examFeeTotal + karateFeeTotal + admissionFeeTotal + 
-                          registrationFee + annualChargesTotal + prevBal;
+      const total = numericValues.reduce((sum, value) => sum + value, 0);
       
-      const totalPaid = examFeeCurrentPaid + karateFeeCurrentPaid + 
-                       admissionFeeCurrentPaid + annualChargesPaid + feePaid;
-      
-      const curBalance = Math.max(0, currentTotal - totalPaid);
-      const allTotal = currentTotal;
-
-      // Update form data with calculated values
+      // Update totals in form
       setFormData(prev => ({
         ...prev,
-        fee: {
-          ...prev.fee,
-          examFeeBalanced,
-          karateFeeBalanced,
-          admissionFeeBalanced,
-          annualChargesBalanced,
-          curBalance,
-          allTotal
-        }
+        
       }));
     };
 
-    calculateTotals();
+    calculateTotal();
   }, [
     formData.fee.tutionFee,
-    formData.fee.labsFee,
-    formData.fee.lateFeeFine,
-    formData.fee.extraFee,
-    formData.fee.others,
-    formData.fee.examFeeTotal,
-    formData.fee.examFeeCurrentPaid,
-    formData.fee.karateFeeTotal,
-    formData.fee.karateFeeCurrentPaid,
-    formData.fee.admissionFeeTotal,
-    formData.fee.admissionFeeCurrentPaid,
+    formData.fee.booksCharges,
     formData.fee.registrationFee,
-    formData.fee.annualChargesTotal,
-    formData.fee.annualChargesPaid,
-    formData.fee.prevBal,
-    formData.fee.feePaid
+    formData.fee.examFee,
+    formData.fee.labFee,
+    formData.fee.artCraftFee,
+    formData.fee.karateFee,
+    formData.fee.lateFeeFine,
+    formData.fee.others,
+    formData.fee.admissionFee,
+    formData.fee.annualCharges,
+    formData.fee.absentFine,
+    formData.fee.miscellaneousFee,
+    formData.fee.arrears
   ]);
 
   // Reset form when modal opens
@@ -140,31 +122,23 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
         section: "A"
       },
       fee: {
-        ts: 0,
-        cs: 0,
-      feeMonth: "",
-      tutionFee: "",
-      labsFee: "",
-      lateFeeFine: "",
-      extraFee: "",
-      others: "",
-      examFeeTotal: "",
-      examFeeCurrentPaid: "",
-      examFeeBalanced: "",
-      karateFeeTotal: "",
-      karateFeeCurrentPaid: "",
-      karateFeeBalanced: "",
-      admissionFeeTotal: "",
-      admissionFeeCurrentPaid: "",
-      admissionFeeBalanced: "",
-      registrationFee: "",
-      annualChargesTotal: "",
-      annualChargesPaid: "",
-      annualChargesBalanced: "",
-      prevBal: "",
-      feePaid: "",
-      curBalance: "",
-      allTotal: "",
+         
+        feeMonth: "",
+        session: "",
+        tutionFee: "",
+        booksCharges: "",
+        registrationFee: "",
+        examFee: "",
+        labFee: "",
+        artCraftFee: "",
+        karateFee: "",
+        lateFeeFine: "",
+        others: "",
+        admissionFee: "",
+        annualCharges: "",
+        absentFine: "",
+        miscellaneousFee: "",
+        arrears: ""
       }
     });
     setSelectedCampusName("");
@@ -260,17 +234,16 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
     } else if (name.startsWith('fee.')) {
       const fieldName = name.split('.')[1];
       
-      // Parse number fields
+      // Parse number fields (exclude feeMonth)
       const numericFields = [
-        'ts', 'cs', 'tutionFee', 'labsFee', 'lateFeeFine', 'extraFee', 
-        'others', 'examFeeTotal', 'examFeeCurrentPaid', 'karateFeeTotal',
-        'karateFeeCurrentPaid', 'admissionFeeTotal', 'admissionFeeCurrentPaid',
-        'registrationFee', 'annualChargesTotal', 'annualChargesPaid',
-        'prevBal', 'feePaid'
+          'tutionFee', 'booksCharges', 'registrationFee', 
+        'examFee', 'labFee', 'artCraftFee', 'karateFee', 'lateFeeFine',
+        'others', 'admissionFee', 'annualCharges', 'absentFine', 
+        'miscellaneousFee', 'arrears'
       ];
       
       const newValue = numericFields.includes(fieldName) 
-        ? (value === "" ? 0 : parseFloat(value))
+        ? (value === "" ? "" : parseFloat(value) || 0)
         : value;
       
       setFormData({
@@ -299,6 +272,10 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
       toast.error("Please select fee month");
       return;
     }
+    if (!formData.fee.session) {
+      toast.error("Please select session");
+      return;
+    }
     if (!formData.student.campusId) {
       toast.error("Please select campus");
       return;
@@ -316,31 +293,22 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
           section: formData.student.section
         },
         fee: {
-          ts: formData.fee.ts,
-          cs: formData.fee.cs,
-          feeMonth: formData.fee.feeMonth,
-          tutionFee: formData.fee.tutionFee,
-          labsFee: formData.fee.labsFee,
-          lateFeeFine: formData.fee.lateFeeFine,
-          extraFee: formData.fee.extraFee,
-          others: formData.fee.others,
-          examFeeTotal: formData.fee.examFeeTotal,
-          examFeeCurrentPaid: formData.fee.examFeeCurrentPaid,
-          examFeeBalanced: formData.fee.examFeeBalanced,
-          karateFeeTotal: formData.fee.karateFeeTotal,
-          karateFeeCurrentPaid: formData.fee.karateFeeCurrentPaid,
-          karateFeeBalanced: formData.fee.karateFeeBalanced,
-          admissionFeeTotal: formData.fee.admissionFeeTotal,
-          admissionFeeCurrentPaid: formData.fee.admissionFeeCurrentPaid,
-          admissionFeeBalanced: formData.fee.admissionFeeBalanced,
-          registrationFee: formData.fee.registrationFee,
-          annualChargesTotal: formData.fee.annualChargesTotal,
-          annualChargesPaid: formData.fee.annualChargesPaid,
-          annualChargesBalanced: formData.fee.annualChargesBalanced,
-          prevBal: formData.fee.prevBal,
-          feePaid: formData.fee.feePaid,
-          curBalance: formData.fee.curBalance,
-          allTotal: formData.fee.allTotal,
+           feeMonth: formData.fee.feeMonth,
+           session: formData.fee.session,
+          tutionFee: formData.fee.tutionFee || 0,
+          booksCharges: formData.fee.booksCharges || 0,
+          registrationFee: formData.fee.registrationFee || 0,
+          examFee: formData.fee.examFee || 0,
+          labFee: formData.fee.labFee || 0,
+          artCraftFee: formData.fee.artCraftFee || 0,
+          karateFee: formData.fee.karateFee || 0,
+          lateFeeFine: formData.fee.lateFeeFine || 0,
+          others: formData.fee.others || 0,
+          admissionFee: formData.fee.admissionFee || 0,
+          annualCharges: formData.fee.annualCharges || 0,
+          absentFine: formData.fee.absentFine || 0,
+          miscellaneousFee: formData.fee.miscellaneousFee || 0,
+          arrears: formData.fee.arrears || 0
         }
       };
       
@@ -368,7 +336,7 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
             <PlusCircle className="h-8 w-8" />
             <div>
               <h2 className="text-2xl font-bold">Add New Student</h2>
-              <p className="text-blue-100">Fill in the student details below</p>
+              <p className="text-blue-100">Fill in the student and fee details below</p>
             </div>
           </div>
           <button
@@ -381,7 +349,7 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
         </div>
 
         <form onSubmit={handleSubmit} className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Left Column - Student Information */}
             <div className="space-y-6">
@@ -403,7 +371,7 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
                       onChange={handleChange}
                       required
                       disabled={submitting}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50"
                       placeholder="Enter student name"
                     />
                   </div>
@@ -419,7 +387,7 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
                       onChange={handleChange}
                       required
                       disabled={submitting}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50"
                       placeholder="Enter father's name"
                     />
                   </div>
@@ -435,7 +403,7 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
                         onChange={handleChange}
                         required
                         disabled={submitting}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50"
                       >
                         <option value="Play Group">Play Group</option>
                         <option value="Nursery">Nursery</option>
@@ -452,7 +420,6 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
                         <option value="10">Class 10</option>
                         <option value="11">Class 11</option>
                         <option value="12">Class 12</option>
-
                       </select>
                     </div>
 
@@ -474,34 +441,6 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
                         ))}
                       </select>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Fee Month *
-                    </label>
-                    <select
-                      name="fee.feeMonth"
-                      value={formData.fee.feeMonth}
-                      onChange={handleChange}
-                      required
-                      disabled={submitting}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <option value="">Select Month</option>
-                      <option value="Jan">January</option>
-                      <option value="Feb">February</option>
-                      <option value="Mar">March</option>
-                      <option value="Apr">April</option>
-                      <option value="May">May</option>
-                      <option value="Jun">June</option>
-                      <option value="Jul">July</option>
-                      <option value="Aug">August</option>
-                      <option value="Sep">September</option>
-                      <option value="Oct">October</option>
-                      <option value="Nov">November</option>
-                      <option value="Dec">December</option>
-                    </select>
                   </div>
 
                   <div>
@@ -540,7 +479,7 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
                         onChange={handleChange}
                         required
                         disabled={submitting || campuses.length === 0}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50"
                       >
                         {campuses.length === 0 ? (
                           <option value="">No campuses available</option>
@@ -563,151 +502,185 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
                   </div>
                 </div>
               </div>
+
+              {/* Fee Month Selection */}
+              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Fee Period
+                </h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fee Month *
+                    </label>
+                    <select
+                      name="fee.feeMonth"
+                      value={formData.fee.feeMonth}
+                      onChange={handleChange}
+                      required
+                      disabled={submitting}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50"
+                    >
+                      <option value="">Select Month</option>
+                      <option value="January">January</option>
+                      <option value="February">February</option>
+                      <option value="March">March</option>
+                      <option value="April">April</option>
+                      <option value="May">May</option>
+                      <option value="June">June</option>
+                      <option value="July">July</option>
+                      <option value="August">August</option>
+                      <option value="September">September</option>
+                      <option value="October">October</option>
+                      <option value="November">November</option>
+                      <option value="December">December</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Session *
+                    </label>
+                    <select
+                      name="fee.session"
+                      value={formData.fee.session}
+                      onChange={handleChange}
+                      required
+                      disabled={submitting}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50"
+                    >
+                      <option value="">Select Session</option>
+                      <option value="2024-2025">2024-2025</option>
+                      <option value="2025-2026">2025-2026</option>
+                      <option value="2026-2027">2026-2027</option>
+                      <option value="2027-2028">2027-2028</option>
+
+                    </select>
+                  </div>
+
+               
+                </div>
+              </div>
             </div>
 
             {/* Middle Column - Basic Fees */}
             <div className="space-y-6">
               <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Basic Fees (Rs.)</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Basic Fees
+                </h3>
                 
                 <div className="space-y-4">
                   {[
-                    { key: 'tutionFee', label: 'Tuition Fee' },
-                    { key: 'labsFee', label: 'Labs Fee' },
-                    { key: 'lateFeeFine', label: 'Late Fee Fine' },
-                    { key: 'extraFee', label: 'Extra Fee' },
-                    { key: 'others', label: 'Others' },
-                    { key: 'registrationFee', label: 'Registration Fee' },
-                    { key: 'prevBal', label: 'Previous Balance' },
-                    { key: 'feePaid', label: 'Fee Paid' },
-                  ].map(({ key, label }) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <label className="text-sm text-gray-600">{label}:</label>
-                      <input
-                        type="number"
-                        name={`fee.${key}`}
-                        value={formData.fee[key]}
-                        onChange={handleChange}
-                        min="0"
-                        disabled={submitting}
-                        className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-right disabled:opacity-50"
-                      />
+                    { key: 'tutionFee', label: 'Tuition Fee', placeholder: 'Enter tuition fee' },
+                    { key: 'booksCharges', label: 'Books & Stationery', placeholder: 'Enter books charges' },
+                    { key: 'registrationFee', label: 'Registration Fee', placeholder: 'Enter registration fee' },
+                    { key: 'examFee', label: 'Exam Fee', placeholder: 'Enter exam fee' },
+                    { key: 'labFee', label: 'Lab Fee', placeholder: 'Enter lab fee' },
+                  ].map(({ key, label, placeholder }) => (
+                    <div key={key}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {label}
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                        <input
+                          type="number"
+                          name={`fee.${key}`}
+                          value={formData.fee[key]}
+                          onChange={handleChange}
+                          min="0"
+                          step="0.01"
+                          disabled={submitting}
+                          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50"
+                          placeholder={placeholder}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
+              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  Activity & Other Fees
+                </h3>
+                
+                <div className="space-y-4">
+                  {[
+                    { key: 'artCraftFee', label: 'Art & Craft Fee', placeholder: 'Enter art & craft fee' },
+                    { key: 'karateFee', label: 'Karate Fee', placeholder: 'Enter karate fee' },
+                    { key: 'lateFeeFine', label: 'Late Fee Fine', placeholder: 'Enter late fee fine' },
+                    { key: 'others', label: 'Other Charges', placeholder: 'Enter other charges' },
+                  ].map(({ key, label, placeholder }) => (
+                    <div key={key}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {label}
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                        <input
+                          type="number"
+                          name={`fee.${key}`}
+                          value={formData.fee[key]}
+                          onChange={handleChange}
+                          min="0"
+                          step="0.01"
+                          disabled={submitting}
+                          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50"
+                          placeholder={placeholder}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Right Column - Special Fees */}
             <div className="space-y-6">
-              {/* Exam Fee Section */}
               <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Exam Fee (Rs.)</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  Additional Fees
+                </h3>
                 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {[
-                    { key: 'examFeeTotal', label: 'Total' },
-                    { key: 'examFeeCurrentPaid', label: 'Current Paid' },
-                    { key: 'examFeeBalanced', label: 'Balanced', readOnly: true }
-                  ].map(({ key, label, readOnly }) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <label className="text-sm text-gray-600">{label}:</label>
-                      <input
-                        type="number"
-                        name={`fee.${key}`}
-                        value={formData.fee[key]}
-                        onChange={handleChange}
-                        min="0"
-                        disabled={submitting || readOnly}
-                        readOnly={readOnly}
-                        className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-right disabled:opacity-50 bg-gray-50"
-                      />
+                    { key: 'admissionFee', label: 'Admission Fee', placeholder: 'Enter admission fee' },
+                    { key: 'annualCharges', label: 'Annual Charges', placeholder: 'Enter annual charges' },
+                    { key: 'absentFine', label: 'Absent Fine', placeholder: 'Enter absent fine' },
+                    { key: 'miscellaneousFee', label: 'Miscellaneous Fee', placeholder: 'Enter miscellaneous fee' },
+                    { key: 'arrears', label: 'Arrears', placeholder: 'Enter arrears amount' },
+                  ].map(({ key, label, placeholder }) => (
+                    <div key={key}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {label}
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                        <input
+                          type="number"
+                          name={`fee.${key}`}
+                          value={formData.fee[key]}
+                          onChange={handleChange}
+                          min="0"
+                          step="0.01"
+                          disabled={submitting}
+                          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50"
+                          placeholder={placeholder}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Karate Fee Section */}
-              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Karate Fee (Rs.)</h3>
-                
-                <div className="space-y-3">
-                  {[
-                    { key: 'karateFeeTotal', label: 'Total' },
-                    { key: 'karateFeeCurrentPaid', label: 'Current Paid' },
-                    { key: 'karateFeeBalanced', label: 'Balanced', readOnly: true }
-                  ].map(({ key, label, readOnly }) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <label className="text-sm text-gray-600">{label}:</label>
-                      <input
-                        type="number"
-                        name={`fee.${key}`}
-                        value={formData.fee[key]}
-                        onChange={handleChange}
-                        min="0"
-                        disabled={submitting || readOnly}
-                        readOnly={readOnly}
-                        className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-right disabled:opacity-50 bg-gray-50"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Admission Fee Section */}
-              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Admission Fee (Rs.)</h3>
-                
-                <div className="space-y-3">
-                  {[
-                    { key: 'admissionFeeTotal', label: 'Total' },
-                    { key: 'admissionFeeCurrentPaid', label: 'Current Paid' },
-                    { key: 'admissionFeeBalanced', label: 'Balanced', readOnly: true }
-                  ].map(({ key, label, readOnly }) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <label className="text-sm text-gray-600">{label}:</label>
-                      <input
-                        type="number"
-                        name={`fee.${key}`}
-                        value={formData.fee[key]}
-                        onChange={handleChange}
-                        min="0"
-                        disabled={submitting || readOnly}
-                        readOnly={readOnly}
-                        className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-right disabled:opacity-50 bg-gray-50"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Annual Charges Section */}
-              <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Annual Charges (Rs.)</h3>
-                
-                <div className="space-y-3">
-                  {[
-                    { key: 'annualChargesTotal', label: 'Total' },
-                    { key: 'annualChargesPaid', label: 'Paid' },
-                    { key: 'annualChargesBalanced', label: 'Balanced', readOnly: true }
-                  ].map(({ key, label, readOnly }) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <label className="text-sm text-gray-600">{label}:</label>
-                      <input
-                        type="number"
-                        name={`fee.${key}`}
-                        value={formData.fee[key]}
-                        onChange={handleChange}
-                        min="0"
-                        disabled={submitting || readOnly}
-                        readOnly={readOnly}
-                        className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-right disabled:opacity-50 bg-gray-50"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Summary Card */}
+          
             </div>
           </div>
 
@@ -717,14 +690,14 @@ export default function CreateStudentModal({ isOpen, onClose, onCreateStudent })
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-3 bg-linear-to-r from-blue-600 to-purple-700 text-white rounded-lg hover:from-blue-700 hover:to-purple-800 transition-all font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-3 bg-linear-to-r from-blue-600 to-purple-700 text-white rounded-lg hover:from-blue-700 hover:to-purple-800 transition-all font-medium shadow-md disabled:opacity-50 flex items-center gap-2"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {submitting ? "Creating..." : "Create Student"}

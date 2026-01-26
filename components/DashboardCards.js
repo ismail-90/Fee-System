@@ -164,6 +164,7 @@ export default function DashboardCards({ onCSVUpload }) {
     totalCampuses: 0,
     totalStudents: 0,
     totalFee: 0,
+    totalPendingStudents: 0,
     totalExpenses: 0,
     totalReceived: 0,
     totalPending: 0,

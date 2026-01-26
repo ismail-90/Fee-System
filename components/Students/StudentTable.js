@@ -112,10 +112,9 @@ export default function StudentTable({
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">ID</th>
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Student Name</th>
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Father Name</th>
-              <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Total Fee</th>
+              <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Tuition Fee</th>
               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Paid</th>
-              <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Balance</th>
-              <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+               <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -177,7 +176,7 @@ export default function StudentTable({
                     <div className="font-bold text-gray-900">
                       Rs. {student.allTotal?.toLocaleString()}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">Annual</div>
+                    <div className="text-xs text-gray-500 mt-1">Monthly</div>
                   </td>
                   
                   {/* Paid Column */}
@@ -193,15 +192,7 @@ export default function StudentTable({
                     </div>
                   </td>
                   
-                  {/* Balance Column */}
-                  <td className="p-4">
-                    <div className={`font-bold ${student.curBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      Rs. {calculateTotalDue(student)?.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {student.curBalance > 0 ? 'Payment due' : 'Cleared'}
-                    </div>
-                  </td>
+                   
                   
                   {/* Actions Column */}
                   <td className="p-4">

@@ -9,10 +9,16 @@ import {
   Calendar,
   FileText,
   Loader2,
-  Settings
+  Settings,
+  Filter // Added Filter icon
 } from "lucide-react";
 import { getBulkInvoicesAPI } from "../../../Services/invoiceService";
 import AppLayout from "../../../components/AppLayout";
+
+const classList = [
+  "Play Group", "Nursery", "prep", "1", "2", "3", "4", "5", 
+  "6", "7", "8", "9", "10", "11", "12"
+];
 
 export default function BulkInvoicesPage() {
   const { user, loading } = useAuth();
@@ -25,8 +31,10 @@ export default function BulkInvoicesPage() {
   const [selectedInvoiceData, setSelectedInvoiceData] = useState(null);
 
   // State for layout selection (1, 2, or 3 per page)
-  const [studentsPerPage, setStudentsPerPage] = useState(3); 
-
+  const [studentsPerPage, setStudentsPerPage] = useState(3);
+  
+  // NEW: State for Class Selection (Default: Play Group)
+  const [selectedClass, setSelectedClass] = useState("Play Group");
 
   useEffect(() => {
     if (loading) return;
@@ -34,13 +42,16 @@ export default function BulkInvoicesPage() {
       router.push("/");
       return;
     }
+    // Now fetch happens whenever user, loading, OR selectedClass changes
     fetchBulkInvoices();
-  }, [user, loading]);
+  }, [user, loading, selectedClass]);
 
   const fetchBulkInvoices = async () => {
     setLoadingInvoices(true);
     try {
-      const res = await getBulkInvoicesAPI();
+      // Pass the selectedClass to the API
+      const res = await getBulkInvoicesAPI(selectedClass);
+      
       if (res.success && res.data) {
         setBulkInvoices(res.data);
         setFilteredInvoices(res.data);
@@ -72,6 +83,7 @@ export default function BulkInvoicesPage() {
     setFilteredInvoices(filtered);
   }, [searchTerm, bulkInvoices]);
 
+  // ... [Keep all your helper functions like formatDate, formatMonthName, getSingleVoucherHTML, generateInvoiceHTML, getInvoiceStyles here exactly as they were] ...
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -105,7 +117,9 @@ export default function BulkInvoicesPage() {
       (currentPayment.tutionFee || 0) + (currentPayment.booksCharges || 0) +
       (currentPayment.registrationFee || 0) + (currentPayment.examFee || 0) +
       (currentPayment.labFee || 0) + (currentPayment.artCraftFee || 0) +
-      (currentPayment.karateFee || 0) + (currentPayment.lateFeeFine || 0);
+      (currentPayment.karateFee || 0) + (currentPayment.lateFeeFine || 0) +
+      (currentPayment.absentFine || 0) + (currentPayment.arrears || 0) +
+      (currentPayment.admissionFee || 0);
 
     const previousMonths = paymentHistory.payments || [];
     const sortedPayments = [...previousMonths].sort((a, b) => 
@@ -133,7 +147,7 @@ export default function BulkInvoicesPage() {
       previousFeeRows += `
         <tr>
           <td>${allMonths[monthIndex]}-${year}</td>
-          <td class="align-right-bold">0</td>
+          <td class="align-right-bold">${formatCurrency(paymentHistory.payments.arrears || 0)}</td>
           <td class="align-right-bold">0</td>
         </tr>
       `;
@@ -226,7 +240,7 @@ export default function BulkInvoicesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td>Admission Fee</td><td class="align-right-bold red-text">0</td></tr>
+                  <tr><td>Admission Fee</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.admissionFee || 0)}</td></tr>
                   <tr><td>Registration Fee</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.registrationFee || 0)}</td></tr>
                   <tr><td>Exam Fee</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.examFee || 0)}</td></tr>
                   <tr><td>2nd Term Exam Fee</td><td class="align-right-bold red-text">0</td></tr>
@@ -234,17 +248,15 @@ export default function BulkInvoicesPage() {
                   <tr><td>Art & craft Fee</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.artCraftFee || 0)}</td></tr>
                   <tr><td>Karate Fee</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.karateFee || 0)}</td></tr>
                   <tr><td>Annual Expense ETC</td><td class="align-right-bold red-text">0</td></tr>
-                  <tr><td>Arrears</td><td class="align-right-bold red-text">0</td></tr>
-                  <tr><td>Late Fee Fine</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.lateFeeFine || 0)}</td></tr>
-                  <tr><td>Absent Fine</td><td class="align-right-bold red-text">0</td></tr>
+                  <tr><td>Arrears</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.arrears || 0)}</td></tr>
+                   <tr><td>Absent Fine</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.absentFine || 0)}</td></tr>
                   <tr class="highlight-row">
                     <td>Total With in Due Date</td>
                     <td class="align-right-bold">${formatCurrency(totalCurrentCharges - (currentPayment.lateFeeFine || 0))}</td>
                   </tr>
                   <tr>
                     <td>Late Fee Fine</td>
-                    <td class="align-right-bold">${formatCurrency(currentPayment.lateFeeFine || 0)}</td>
-                  </tr>
+                    <td class="align-right-bold red-text">${formatCurrency(currentPayment.lateFeeFine || 0)}</td>
                   <tr class="highlight-row">
                     <td>Total After Due Date</td>
                     <td class="align-right-bold">${formatCurrency(totalCurrentCharges)}</td>
@@ -526,6 +538,7 @@ export default function BulkInvoicesPage() {
     printWindow.document.close();
   };
 
+
   if (loading) {
     return (
       <div className="min-h-screen flex justify-center items-center">
@@ -539,26 +552,45 @@ export default function BulkInvoicesPage() {
       <div className="p-6 bg-gray-50 min-h-screen">
 
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-800 mb-2">Bulk Challans</h1>
-              <p className="text-gray-600">View and manage bulk student Challans</p>
+              <p className="text-gray-600">View and manage bulk student Challans for <span className="font-bold text-blue-600">{selectedClass}</span></p>
             </div>
             
-            {/* Layout Selection Dropdown */}
-            <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
-                <div className="flex items-center gap-2">
-                    <Settings size={18} className="text-gray-500" />
-                    <label className="text-sm font-medium text-gray-700">Page Layout:</label>
+            <div className="flex items-center gap-4">
+                {/* NEW: Class Selection Dropdown */}
+                <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-2">
+                        <Filter size={18} className="text-gray-500" />
+                        <label className="text-sm font-medium text-gray-700">Class:</label>
+                    </div>
+                    <select 
+                        value={selectedClass}
+                        onChange={(e) => setSelectedClass(e.target.value)}
+                        className="border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5"
+                    >
+                        {classList.map((cls, idx) => (
+                            <option key={idx} value={cls}>{cls}</option>
+                        ))}
+                    </select>
                 </div>
-                <select 
-                    value={studentsPerPage}
-                    onChange={(e) => setStudentsPerPage(Number(e.target.value))}
-                    className="border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5"
-                >
-                    <option value={1}>1 Student (3 Copies)</option>
-                    <option value={3}>3 Students</option>
-                </select>
+
+                {/* Layout Selection Dropdown */}
+                <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-2">
+                        <Settings size={18} className="text-gray-500" />
+                        <label className="text-sm font-medium text-gray-700">Page Layout:</label>
+                    </div>
+                    <select 
+                        value={studentsPerPage}
+                        onChange={(e) => setStudentsPerPage(Number(e.target.value))}
+                        className="border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5"
+                    >
+                        <option value={1}>1 Student (3 Copies)</option>
+                        <option value={3}>3 Students</option>
+                    </select>
+                </div>
             </div>
           </div>
         </div>
@@ -569,7 +601,7 @@ export default function BulkInvoicesPage() {
             <input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by PDF URL, student name, or father name..."
+              placeholder={`Search within ${selectedClass}...`}
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -579,13 +611,13 @@ export default function BulkInvoicesPage() {
           {loadingInvoices ? (
             <div className="p-12 flex flex-col items-center justify-center">
               <Loader2 className="h-10 w-10 animate-spin text-blue-600 mb-4" />
-              <p className="text-gray-600">Loading bulk Challans...</p>
+              <p className="text-gray-600">Loading bulk Challans for {selectedClass}...</p>
             </div>
           ) : filteredInvoices.length === 0 ? (
             <div className="p-12 text-center">
               <FileText className="h-14 w-14 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">No bulk Challans found</p>
-              <p className="text-gray-400 mt-1">Create bulk Challans to see them here</p>
+              <p className="text-gray-500 text-lg">No bulk Challans found for {selectedClass}</p>
+              <p className="text-gray-400 mt-1">Try selecting a different class</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -654,7 +686,7 @@ export default function BulkInvoicesPage() {
             </div>
           )}
         </div>
-         
+          
       </div>
     </AppLayout>
   );

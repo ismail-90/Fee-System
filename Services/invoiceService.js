@@ -13,8 +13,8 @@ export const payInvoiceAPI = async (paymentData) => {
 }
 
 // get All Invoices by campus id
-export const getInvoicesByCampusAPI = async (campusId) => {
-  const response = await api.get(`/global/${campusId}/invoices`);
+export const getInvoicesByCampusAPI = async (campusId, className) => {
+  const response = await api.get(`/global/${campusId}/class?className=${className}`);
   return response.data;
 }
 
@@ -25,8 +25,8 @@ export const generateBulkInvoicesAPI = async (bulkData) => {
 }
 
 // get bulk invoices
-export const getBulkInvoicesAPI = async () => {
-  const response = await api.get(`/global/bulk-invoices`);
+export const getBulkInvoicesAPI = async (className) => {
+  const response = await api.get(`/global/bulk-invoices?className=${className}`);
   return response.data;
 }
 

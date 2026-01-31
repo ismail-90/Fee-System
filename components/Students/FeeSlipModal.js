@@ -43,7 +43,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     annualCharges: 0,
     absentFine: 0,
     miscellaneousFee: 0,
-    arrears: 0
+    arrears: student?.curBalance || 0
   });
 
   // Dynamic months array based on current year
@@ -80,39 +80,52 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
   }, []);
 
   // Initialize with student's fee data
-  useEffect(() => {
-    if (student && feeMonths.length > 0) {
-      // Set fee month from student or current month
-      if (student?.feeMonth) {
-        // Check if student's fee month exists in current year months
-        const studentMonthExists = feeMonths.some(month =>
+// Initialize with student's fee data
+useEffect(() => {
+  if (student && feeMonths.length > 0) {
+    // Set fee month from student or current month
+    if (student?.feeMonth) {
+      // Check if student's fee month exists in current year months
+      const studentMonthExists = feeMonths.some(month =>
+        month.toLowerCase().includes(student.feeMonth.toLowerCase())
+      );
+
+      if (studentMonthExists) {
+        // Find the matching month
+        const matchingMonth = feeMonths.find(month =>
           month.toLowerCase().includes(student.feeMonth.toLowerCase())
         );
-
-        if (studentMonthExists) {
-          // Find the matching month
-          const matchingMonth = feeMonths.find(month =>
-            month.toLowerCase().includes(student.feeMonth.toLowerCase())
-          );
-          setFeeMonth(matchingMonth || feeMonths[0]);
-        } else {
-          setFeeMonth(feeMonths[0]);
-        }
+        setFeeMonth(matchingMonth || feeMonths[0]);
       } else {
-        // Default to current month
-        const currentMonthIndex = new Date().getMonth();
-        setFeeMonth(feeMonths[currentMonthIndex] || feeMonths[0]);
+        setFeeMonth(feeMonths[0]);
       }
-
-      // Initialize fee breakdown from student data
-      setFeeBreakdown(prev => ({
-        ...prev,
-        prevBal: student.curBalance || 0,
-        feePaid: student.feePaid || 0,
-      }));
-
+    } else {
+      // Default to current month
+      const currentMonthIndex = new Date().getMonth();
+      setFeeMonth(feeMonths[currentMonthIndex] || feeMonths[0]);
     }
-  }, [student, feeMonths]);
+
+    // Initialize fee breakdown from student data - YE SECTION UPDATE KAREN
+    setFeeBreakdown(prev => ({
+      ...prev,
+      tutionFee: student.tutionFee || 0,
+      booksCharges: student.booksCharges || 0,
+      registrationFee: student.registrationFee || 0,
+      examFee: student.examFee || 0,
+      labFee: student.labFee || 0,
+      artCraftFee: student.artCraftFee || 0,
+      karateFee: student.karateFee || 0,
+      lateFeeFine: student.lateFeeFine || 0,
+      others: student.others || {},
+      admissionFee: student.admissionFee || 0,
+      annualCharges: student.annualCharges || 0,
+      absentFine: student.absentFee || 0,
+      miscellaneousFee: student.miscellaneousFee || 0,
+      arrears: student.curBalance || 0  // YAHAN ARREARS KO curBalance SE SET KAREN
+    }));
+
+  }
+}, [student, feeMonths]);
 
   // Helper functions
   const formatDate = (dateString) => {
@@ -198,7 +211,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
         annualCharges: student.annualCharges || 0,
         absentFine: student.absentFine || 0,
         miscellaneousFee: student.miscellaneousFee || 0,
-        arrears: student.arrears || 0
+        arrears: student.curBalance || 0
       });
     }
   };
@@ -857,23 +870,25 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
                       </div>
                     ))}
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Arrears
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
-                      <input
-                        type="number"
-                        value={feeBreakdown.arrears || ''}
-                        onChange={(e) => handleBreakdownChange('arrears', e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="0"
-                        min="0"
-                      />
-                    </div>
-                  </div>
+ <div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Arrears (Current Balance)
+    <span className="ml-2 text-xs text-gray-500">
+      (Student's current balance: Rs. {student.curBalance?.toLocaleString() || '0'})
+    </span>
+  </label>
+  <div className="relative">
+    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+    <input
+      type="number"
+      value={feeBreakdown.arrears || ''}
+      onChange={(e) => handleBreakdownChange('arrears', e.target.value)}
+      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      placeholder="Edit arrears amount if needed"
+      min="0"
+    />
+  </div>
+</div>
                 </div>
               )}
             </div>

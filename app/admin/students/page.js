@@ -24,6 +24,7 @@ import StudentTable from "../../../components/Students/StudentTable";
 import FeeSlipModal from "../../../components/Students/FeeSlipModal";
 import { deleteMultipleStudentsAPI } from "../../../Services/studentService";
 import StudentDetailModal from "../../../components/Students/StudentDetailModal";
+import { getStudentRecord } from "../../../Services/studentService";
 
 
 export default function AdminStudents() {

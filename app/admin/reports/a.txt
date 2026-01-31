@@ -1,0 +1,189 @@
+//Response Of getCampusesAPI
+{
+    "campuses": [
+        {
+            "_id": "696dba039294271856bbebde",
+            "name": "test-campus",
+            "city": "atd",
+            "phone_no": "23932982",
+            "status": "active",
+            "created_at": "2026-01-19T04:58:43.209Z",
+            "accountants": [
+                {
+                    "_id": "696dba179294271856bbebe5",
+                    "name": "test",
+                    "email": "test@gmail.com",
+                    "phone_no": "921092102",
+                    "campus_id": "696dba039294271856bbebde",
+                    "role": "accountant",
+                    "status": "active",
+                    "created_at": "2026-01-19T04:59:03.015Z"
+                }
+            ]
+        },
+        {
+            "_id": "69676b719294271856babae2",
+            "name": "Jhangi Campus",
+            "city": "ATD",
+            "phone_no": "0992-384111",
+            "status": "active",
+            "created_at": "2026-01-14T10:09:53.144Z",
+            "accountants": [
+                {
+                    "_id": "69676b959294271856babae9",
+                    "name": "Yasir",
+                    "email": "yasir008@gmail.com",
+                    "phone_no": "0992-384111",
+                    "campus_id": "69676b719294271856babae2",
+                    "role": "accountant",
+                    "status": "active",
+                    "created_at": "2026-01-14T10:10:29.218Z"
+                }
+            ]
+        }
+    ]
+}
+
+//Response of the campusReportApi
+{
+  "success": true,
+  "message": "Cash flow report generated successfully",
+  "reportType": "admin_cash_flow_report",
+  "generatedBy": {
+    "userId": "69672858c9689caa33b304bb",
+    "name": "Admin",
+    "role": "admin"
+  },
+  "filterInfo": {
+    "filterType": "specific",
+    "dateRange": {
+      "start": "2026-01-29T00:00:00.000Z",
+      "end": "2026-01-29T23:59:59.999Z"
+    }
+  },
+  "campusId": "696dba039294271856bbebde",
+  "bfAmount": 5000,
+  "summary": {
+    "totalStudentsPaid": 1,
+    "totalPayments": 4,
+    "totalCollection": 400,
+    "averagePerStudent": 400
+  },
+  "studentWiseCollection": [
+    {
+      "studentId": "697722bab6c04bd7a03a4f2a",
+      "studentName": "Ali",
+      "fatherName": "raza",
+      "className": "1",
+      "totalPaid": 400,
+      "payments": [
+        {
+          "feeType": "Art Craft Fee",
+          "amount": 200,
+          "month": "march",
+          "year": 2026,
+          "paymentDate": "2026-01-29T05:35:34.491Z",
+          "paymentStatus": "paid"
+        },
+        {
+          "feeType": "Registration Fee",
+          "amount": 200,
+          "month": "One-time",
+          "year": 2026,
+          "paymentDate": "2026-01-29T05:12:08.892Z",
+          "paymentStatus": "paid"
+        }
+      ]
+    }
+  ],
+  "classWiseSummary": [
+    {
+      "className": "1",
+      "totalAmount": 400,
+      "studentCount": 1,
+      "students": [
+        {
+          "studentName": "Ali",
+          "amount": 400,
+          "fatherName": "raza"
+        }
+      ]
+    }
+  ],
+  "income": {
+    "breakdown": {
+      "tutionFee": 0,
+      "booksCharges": 0,
+      "registrationFee": 200,
+      "examFee": 0,
+      "labFee": 0,
+      "artCraftFee": 200,
+      "karateFee": 0,
+      "lateFeeFine": 0,
+      "others": 0,
+      "admissionFee": 0,
+      "annualCharges": 0,
+      "absentFine": 0,
+      "miscellaneousFee": 0,
+      "arrears": 0
+    },
+    "totalIncome": 400,
+    "feeModelPayments": 2,
+    "invoicePayments": 2
+  },
+  "expenses": {
+    "details": [],
+    "totalExpense": 0,
+    "count": 0
+  },
+  "calculations": {
+    "totalCollection": 400,
+    "totalExpenses": 0,
+    "remainingAmount": 400,
+    "bfAmount": 5000,
+    "cashInHand": 5400
+  },
+  "statistics": {
+    "highestPayingStudent": {
+      "studentId": "697722bab6c04bd7a03a4f2a",
+      "studentName": "Ali",
+      "totalPaid": 400
+    },
+    "highestCollectionClass": {
+      "className": "1",
+      "totalAmount": 400
+    }
+  },
+  "timestamp": "2026-01-30T04:33:02.733Z"
+}
+//data is body 
+{
+  "filterType": "specific",
+  "date": "2026-01-29",
+  "campusId": "696dba039294271856bbebde"
+}
+{
+  "filterType": "dateRange",
+  "startDate": "2024-01-01",
+  "endDate": "2024-01-31",
+  "campusId": "65c8f7a9b3e1f2a4c8d9e0f1"
+}
+{
+  "filterType": "specificMonth",
+  "month": "january",
+  "year": 2024,
+  "campusId": "65c8f7a9b3e1f2a4c8d9e0f1"
+}
+{
+  "filterType": "today",
+  "campusId": "65c8f7a9b3e1f2a4c8d9e0f1"
+}
+{
+  "filterType": "yesterday",
+  "campusId": "65c8f7a9b3e1f2a4c8d9e0f1"
+}
+{
+  "filterType": "thisMonth",
+  "campusId": "65c8f7a9b3e1f2a4c8d9e0f1"
+}
+

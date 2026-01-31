@@ -39,3 +39,9 @@ export const getStudentRecordByIdAPI = async (studentId) => {
   const response = await api.get(`/global/paid-defaulter/${studentId}`);
   return response.data;
 }
+
+// get Student Record by Student Id
+export const getStudentRecord = async (studentId) => {
+  const response = await api.get(`/global/student-fees?studentId=${studentId}`);
+  return response.data;
+}

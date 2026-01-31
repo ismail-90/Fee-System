@@ -217,7 +217,6 @@ export default function DefaultersPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee Month</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Amount</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice</th>
                     </tr>
@@ -251,13 +250,9 @@ export default function DefaultersPage() {
                           {defaulter.feeId?.feeMonth || 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                          {formatCurrency(defaulter.paidAmount || 0)}
+                          {(defaulter.paidAmount || 0)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-bold text-red-600">
-                            {formatCurrency(defaulter.remainingBalance || 0)}
-                          </div>
-                        </td>
+                        
                         <td className="px-6 py-4 whitespace-nowrap">
                           {getStatusBadge(defaulter.status)}
                         </td>

@@ -302,10 +302,12 @@ export default function ReportsDetails() {
   const calculateFeeCategory = (payments, type) => {
     if (!payments) return 0;
     if (type === 'Tuition') return payments.filter(p => p.feeType === 'Tuition Fee').reduce((acc, curr) => acc + curr.amount, 0);
-    if (type === 'Books') return payments.filter(p => p.feeType === 'Books Charges').reduce((acc, curr) => acc + curr.amount, 0);
+    if (type === 'Karate') return payments.filter(p => p.feeType === 'Karate Fee').reduce((acc, curr) => acc + curr.amount, 0);
     if (type === 'Exam') return payments.filter(p => p.feeType === 'Exam Fee').reduce((acc, curr) => acc + curr.amount, 0);
-    
-    const excluded = ['Tuition Fee', 'Books Charges', 'Exam Fee'];
+    if (type === 'Admission') return payments.filter(p => p.feeType === 'Admission Fee').reduce((acc, curr) => acc + curr.amount, 0);
+    if (type === 'Annual') return payments.filter(p => p.feeType === 'Annual Charges').reduce((acc, curr) => acc + curr.amount, 0);
+
+    const excluded = ['Tuition Fee', 'Karate Fee', 'Exam Fee', 'Admission Fee', 'Annual Charges'];
     return payments.filter(p => !excluded.includes(p.feeType)).reduce((acc, curr) => acc + curr.amount, 0);
   };
 
@@ -553,7 +555,9 @@ export default function ReportsDetails() {
                         <th className="px-2 py-1 border font-medium">Student Info</th>
                         <th className="px-2 py-1 border font-medium text-center">Class</th>
                         <th className="px-2 py-1 border font-medium text-right">Tuition</th>
-                        <th className="px-2 py-1 border font-medium text-right">Books</th>
+                        <th className="px-2 py-1 border font-medium text-right">Karate</th>
+                        <th className="px-2 py-1 border font-medium text-right">Annual</th>
+                        <th className="px-2 py-1 border font-medium text-right">Admission</th>
                         <th className="px-2 py-1 border font-medium text-right">Exam</th>
                         <th className="px-2 py-1 border font-medium text-right">Others</th>
                         <th className="px-2 py-1 border font-medium text-right bg-gray-100">Total</th>
@@ -562,8 +566,11 @@ export default function ReportsDetails() {
                     <tbody>
                       {reportData.studentWiseCollection.map((student, index) => {
                         const tuitionAmt = calculateFeeCategory(student.payments, 'Tuition');
-                        const booksAmt = calculateFeeCategory(student.payments, 'Books');
+                        const karateAmt = calculateFeeCategory(student.payments, 'Karate');
+                        const annualAmt = calculateFeeCategory(student.payments, 'Annual');
+                        const admissionAmt = calculateFeeCategory(student.payments, 'Admission');
                         const examAmt = calculateFeeCategory(student.payments, 'Exam');
+                        
                         const otherAmt = calculateFeeCategory(student.payments, 'Others');
                         const recId = student.payments?.[0]?.recordId?.slice(-4).toUpperCase() || (index + 1).toString().padStart(3, '0');
 
@@ -578,8 +585,10 @@ export default function ReportsDetails() {
                             </td>
                             <td className="px-2 py-1 border text-center">{student.className}</td>
                             <td className="px-2 py-1 border text-right">{tuitionAmt > 0 ? formatCurrency(tuitionAmt) : '-'}</td>
-                            <td className="px-2 py-1 border text-right">{booksAmt > 0 ? formatCurrency(booksAmt) : '-'}</td>
+                            <td className="px-2 py-1 border text-right">{karateAmt > 0 ? formatCurrency(karateAmt) : '-'}</td>
+                            <td className="px-2 py-1 border text-right">{annualAmt > 0 ? formatCurrency(annualAmt) : '-'}</td>
                             <td className="px-2 py-1 border text-right">{examAmt > 0 ? formatCurrency(examAmt) : '-'}</td>
+                            <td className="px-2 py-1 border text-right">{admissionAmt > 0 ? formatCurrency(admissionAmt) : '-'}</td>
                             <td className="px-2 py-1 border text-right">{otherAmt > 0 ? formatCurrency(otherAmt) : '-'}</td>
                             <td className="px-2 py-1 border text-right font-bold bg-gray-50">{formatCurrency(student.totalPaid)}</td>
                           </tr>

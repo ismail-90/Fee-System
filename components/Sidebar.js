@@ -40,6 +40,7 @@ export default function Sidebar({ open, setOpen }) {
     { name: 'Students', href: '/admin/students', icon: Users },
     { name: 'Defaulters', href: '/admin/defaulters', icon: UserRoundMinus },
     { name: 'Recievings', href: '/admin/recieving', icon: FileText },
+    { name: 'permissions', href: '/admin/permissions', icon: CreditCard },
     { name: 'Reports', href: '/admin/reports', icon: BarChart3 },
     { name: 'Expenses', href: '/admin/expenses', icon: DollarSign },
   ];
@@ -50,6 +51,7 @@ export default function Sidebar({ open, setOpen }) {
     { name: 'Students', href: '/accountant/students', icon: Users },
     { name: 'Recievings', href: '/accountant/recieving', icon: FileText },
     { name: 'Challans', href: '/accountant/challans', icon: ReceiptIcon },
+    { name: 'Correction Requests', href: '/accountant/requests', icon: CreditCard },
     { name: 'Defaulters', href: '/accountant/defaulters', icon: UserRoundMinus },
     { name: 'Expenses', href: '/accountant/expenses', icon: DollarSign },
     { name: 'Reports', href: '/accountant/reports', icon: BarChart3 },

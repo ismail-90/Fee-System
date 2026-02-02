@@ -41,3 +41,9 @@ export const deleteInvoiceAPI = async (invoiceId) => {
   const response = await api.delete(`/global/remove/${invoiceId}`);
   return response.data;
 }
+
+// get invoice details
+export const getInvoiceDetailsAPI = async (invoiceId) => {
+  const response = await api.get(`/global/invoice-details/${invoiceId}`);
+  return response.data;
+}

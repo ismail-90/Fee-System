@@ -67,3 +67,9 @@ export const getBalanceAmountAPI = async (invoiceId) => {
   const response = await api.get(`/global/balance/${invoiceId}`);
   return response.data;
 }
+
+// update fee payment
+export const updateFeePaymentAPI = async (invoiceId, paymentData) => {
+  const response = await api.put(`/global/updateFee/${invoiceId}`, paymentData);
+  return response.data;
+}

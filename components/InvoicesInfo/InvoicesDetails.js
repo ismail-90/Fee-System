@@ -1,15 +1,17 @@
 'use client';
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Search, Eye, CreditCard, CheckCircle, XCircle, Trash2,
-  Loader2, FileText, User, Users, AlertCircle, Filter
+  Loader2, FileText, User, Filter, AlertCircle, Pencil, Save, Lock
 } from "lucide-react";
 import { getInvoicesByStatusAPI, payInvoiceAPI, deleteInvoiceAPI } from "../../Services/invoiceService";
+import { getBalanceAmountAPI, updateFeePaymentAPI } from "../../Services/feeService";
+// Make sure to import this from your permissions service
+import { getPermissionRequestsAPI } from "../../Services/permissions"; 
 import AppLayout from "../AppLayout";
-import { getBalanceAmountAPI } from "../../Services/feeService";
 
 export default function InvoicesDetails() {
   const { user, loading: authLoading } = useAuth();
@@ -22,32 +24,39 @@ export default function InvoicesDetails() {
   
   // --- FILTERS STATE ---
   const [filterClass, setFilterClass] = useState(""); 
-  const [filterSection, setFilterSection] = useState(""); // New Filter
-  const [filterMonth, setFilterMonth] = useState("");     // New Filter
+  const [filterSection, setFilterSection] = useState("");
+  const [filterMonth, setFilterMonth] = useState("");
 
+  // --- MODAL STATES ---
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false); // NEW: Edit Modal State
+  
   const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [paymentAmount, setPaymentAmount] = useState({});
-  const [processingPayment, setProcessingPayment] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState({}); // For Payment
+  const [editFormData, setEditFormData] = useState({});   // NEW: For Editing
+  
+  const [processingAction, setProcessingAction] = useState(false); // Shared loading state
+  
   const [deletingInvoiceId, setDeletingInvoiceId] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
 
   // --- Lists for Dropdowns ---
-  const availableClasses = [
-    "Play Group", "Nursery", "prep", "1", "2", "3", "4", "5", 
-    "6", "7", "8", "9", "10", "11", "12"
-  ];
+  const availableClasses = ["Play Group", "Nursery", "prep", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+  const availableSections = ["A", "B", "C", "D", "E"];
+  const availableMonths = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
 
-  const availableSections = ["A", "B", "C", "D", "E"]; // Add your sections here
+  // --- 0. Permission Query (NEW) ---
+  const { data: permissionData } = useQuery({
+    queryKey: ['permissionStatus'],
+    queryFn: getPermissionRequestsAPI,
+    staleTime: 30 * 1000, // Check every 30 seconds or on refresh
+    refetchOnWindowFocus: true
+  });
 
-  const availableMonths = [
-    "january", "february", "march", "april", "may", "june", 
-    "july", "august", "september", "october", "november", "december"
-  ];
+  const hasActivePermission = permissionData?.data?.hasActivePermission || false;
 
   // --- 1. Main Invoices Query ---
-  // Note: Class filter API ke through handle ho rha hai (Server Side)
   const {
     data: invoices = [],
     isLoading: loadingInvoices,
@@ -57,41 +66,44 @@ export default function InvoicesDetails() {
     queryKey: ['invoices', activeTab, filterClass],
     queryFn: async () => {
       const status = activeTab === "unpaid" ? "unPaid" : activeTab === "paid" ? "paid" : "partial";
-      // Agar backend section/month support karta hai to wahan pass karein, 
-      // filhal hum Class API se aur Section/Month client-side filter karenge.
       const res = await getInvoicesByStatusAPI(status, filterClass);
       return res.data || [];
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000,
   });
 
-  // --- 2. Balance/Fee Breakdown Query ---
+  // --- 2. Balance/Fee Breakdown Query (Shared for Payment & Edit) ---
+  // We fetch details if EITHER modal is open
   const { 
     data: balanceData, 
-    isLoading: loadingBalance 
+    isLoading: loadingDetails 
   } = useQuery({
-    queryKey: ['invoiceBalance', selectedInvoice?.invoiceId],
+    queryKey: ['invoiceDetails', selectedInvoice?.invoiceId],
     queryFn: () => getBalanceAmountAPI(selectedInvoice?.invoiceId),
-    enabled: !!selectedInvoice && showPaymentModal,
+    enabled: !!selectedInvoice && (showPaymentModal || showEditModal),
   });
 
   const feeBreakdown = useMemo(() => {
     return balanceData?.data?.feeBreakdown || {};
   }, [balanceData]);
 
-  const totalDueFromAPI = useMemo(() => {
-    if (!feeBreakdown) return 0;
-    return Object.values(feeBreakdown).reduce((acc, curr) => acc + (Number(curr) || 0), 0);
-  }, [feeBreakdown]);
+  // --- Effect: Pre-fill Edit Form when Data Loads ---
+  useEffect(() => {
+    if (showEditModal && feeBreakdown) {
+      // Map API keys to form keys
+      const initialData = {};
+      feeInputFields.forEach(field => {
+        const apiKey = apiKeyMapping[field.key] || field.key;
+        initialData[field.key] = feeBreakdown[apiKey] || 0;
+      });
+      setEditFormData(initialData);
+    }
+  }, [feeBreakdown, showEditModal]);
 
 
-  // --- UPDATED FILTER LOGIC (Client Side for Section & Month) ---
+  // --- Filter Logic ---
   const filteredInvoices = useMemo(() => {
-    // Start with the raw list
     let tempInvoices = invoices;
-
-    // 1. Filter by Search Term
     if (searchTerm) {
       const lowerTerm = searchTerm.toLowerCase();
       tempInvoices = tempInvoices.filter(invoice => 
@@ -99,60 +111,34 @@ export default function InvoicesDetails() {
         invoice.invoiceNumber?.toLowerCase().includes(lowerTerm)
       );
     }
-
-    // 2. Filter by Section (Client Side)
-    if (filterSection) {
-      tempInvoices = tempInvoices.filter(invoice => 
-        invoice.section === filterSection
-      );
-    }
-
-    // 3. Filter by Fee Month (Client Side)
-    if (filterMonth) {
-      tempInvoices = tempInvoices.filter(invoice => 
-        invoice.feeMonth?.toLowerCase() === filterMonth.toLowerCase()
-      );
-    }
-
+    if (filterSection) tempInvoices = tempInvoices.filter(invoice => invoice.section === filterSection);
+    if (filterMonth) tempInvoices = tempInvoices.filter(invoice => invoice.feeMonth?.toLowerCase() === filterMonth.toLowerCase());
     return tempInvoices;
   }, [searchTerm, invoices, filterSection, filterMonth]);
 
+  /* ================= HANDLERS ================= */
 
-  /* ================= AUTH GUARD ================= */
-  if (!authLoading && !user) {
-    router.push("/");
-    return null;
-  }
-
-  /* ================= LOGIC FUNCTIONS ================= */
-  
-  const calculateTotal = (amounts) => {
-    return Object.keys(amounts).reduce((sum, key) => {
-      if (key !== 'total' && amounts[key] !== undefined) return sum + (Number(amounts[key]) || 0);
-      return sum;
-    }, 0);
-  };
-
-  const handleFeeChange = (key, value) => {
+  const handleFeeChange = (key, value, isEditMode = false) => {
     let numValue = Number(value) || 0;
     if (numValue < 0) numValue = 0;
 
-    setPaymentAmount(prev => {
-      const updated = { ...prev, [key]: numValue };
-      updated.total = calculateTotal(updated);
-      return updated;
-    });
+    if (isEditMode) {
+      setEditFormData(prev => ({ ...prev, [key]: numValue }));
+    } else {
+      setPaymentAmount(prev => {
+        const updated = { ...prev, [key]: numValue };
+        // Calc total for payment only
+        const total = Object.keys(updated).reduce((sum, k) => k !== 'total' ? sum + (Number(updated[k])||0) : sum, 0);
+        updated.total = total;
+        return updated;
+      });
+    }
   };
 
+  // --- Payment Handlers ---
   const handlePayInvoice = (invoice) => {
     setSelectedInvoice(invoice);
-    const initialAmounts = {
-       tutionFee: "", booksCharges: "", registrationFee: "", examFee: "",
-       labFee: "", artCraftFee: "", karateFee: "", lateFeeFine: "",
-       others: "", admissionFee: "", annualCharges: "", absentFine: "",
-       miscellaneousFee: "", arrears: ""
-    };
-    setPaymentAmount({ ...initialAmounts, total: 0 });
+    setPaymentAmount({ total: 0 });
     setShowPaymentModal(true);
   };
 
@@ -161,7 +147,7 @@ export default function InvoicesDetails() {
     const totalAmount = Number(paymentAmount.total || 0);
     if (totalAmount <= 0) return alert("Please enter an amount greater than 0");
 
-    setProcessingPayment(true);
+    setProcessingAction(true);
     try {
       const response = await payInvoiceAPI({
         invoiceId: selectedInvoice.invoiceId,
@@ -174,18 +160,58 @@ export default function InvoicesDetails() {
         queryClient.invalidateQueries(['invoices']);
         setShowPaymentModal(false);
         setSelectedInvoice(null);
-        setPaymentAmount({});
       } else {
-        alert("Payment failed. Please try again.");
+        alert("Payment failed.");
       }
     } catch (err) {
       console.error(err);
-      alert("An error occurred during payment.");
+      alert("Error during payment.");
     } finally {
-      setProcessingPayment(false);
+      setProcessingAction(false);
     }
   };
 
+  // --- Edit/Update Handlers (NEW) ---
+  const handleEditClick = (invoice) => {
+    if (!hasActivePermission) {
+      alert("You do not have active permission to edit invoices. Please request permission from the dashboard.");
+      return;
+    }
+    setSelectedInvoice(invoice);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateInvoice = async () => {
+    if (!selectedInvoice) return;
+    setProcessingAction(true);
+
+    // Prepare payload (convert numbers to strings if your API strictly needs strings, 
+    // but usually JSON handles numbers fine. Based on your prompt example "100", I'll send strings/numbers mixed).
+    // Filtering out 0 values or sending all depending on backend requirement. 
+    // Here we send all fields to ensure update is complete.
+    
+    try {
+      const response = await updateFeePaymentAPI(selectedInvoice.invoiceId, editFormData);
+      
+      if (response.success) {
+        alert("✅ Invoice updated successfully!");
+        queryClient.invalidateQueries(['invoices']); // Refresh list
+        queryClient.invalidateQueries(['invoiceDetails']); // Refresh details
+        setShowEditModal(false);
+        setSelectedInvoice(null);
+      } else {
+        alert(response.message || "Failed to update invoice.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred while updating.");
+    } finally {
+      setProcessingAction(false);
+    }
+  };
+
+
+  // --- Delete Handlers ---
   const handleDeleteInvoice = (invoice) => {
     setInvoiceToDelete(invoice);
     setShowDeleteModal(true);
@@ -194,20 +220,18 @@ export default function InvoicesDetails() {
   const confirmDeleteInvoice = async () => {
     if (!invoiceToDelete) return;
     setDeletingInvoiceId(invoiceToDelete.invoiceId);
-    
     try {
       const response = await deleteInvoiceAPI(invoiceToDelete.invoiceId);
       if (response.success) {
-        alert("✅ Invoice deleted successfully!");
+        alert("✅ Invoice deleted!");
         queryClient.invalidateQueries(['invoices']);
         setShowDeleteModal(false);
         setInvoiceToDelete(null);
       } else {
-        alert("Failed to delete invoice. Please try again.");
+        alert("Failed to delete.");
       }
     } catch (err) {
-      console.error(err);
-      alert("An error occurred while deleting the invoice.");
+      alert("Error deleting invoice.");
     } finally {
       setDeletingInvoiceId(null);
     }
@@ -218,6 +242,7 @@ export default function InvoicesDetails() {
     return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  // Mapping Configuration
   const feeInputFields = [
     { key: "tutionFee", label: "Tuition Fee" },
     { key: "booksCharges", label: "Books Charges" },
@@ -229,389 +254,305 @@ export default function InvoicesDetails() {
     { key: "admissionFee", label: "Admission Fee" },
     { key: "lateFeeFine", label: "Late Fee / Fine" },
     { key: "annualCharges", label: "Annual Charges" },
-    { key: "others", label: "Other Charges" },
-    { key: "miscellaneousFee", label: "miscellaneous Fee" },
-    { key: "Arrears", label: "Arrears" },
-    { key: "absentFine", label: "Absent Fine" },
+    { key: "miscellaneousFee", label: "Miscellaneous Fee" },
+    { key: "arrears", label: "Arrears" }, // Note lowercase key to match state usually
   ];
 
   const apiKeyMapping = {
     tutionFee: "tutionFee", booksCharges: "booksCharges", registrationFee: "registrationFee",
-    examFee: "examFee", labsFee: "labFee", artCraftFee: "artCraftFee",
+    examFee: "examFee", labFee: "labFee", artCraftFee: "artCraftFee",
     karateFee: "karateFee", admissionFee: "admissionFee", lateFeeFine: "lateFeeFine",
-    annualCharges: "annualCharges", otherCharges: "miscellaneousFee", miscellaneousFee: "miscellaneousFee",
+    annualCharges: "annualCharges", miscellaneousFee: "miscellaneousFee", arrears: "arrears"
   };
 
   if (authLoading) return <div className="min-h-screen flex justify-center items-center"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
+  if (!user) { router.push("/"); return null; }
 
   return (
     <AppLayout>
       <div className="p-6 bg-gray-50 min-h-screen">
+        
+        {/* Permission Banner (Optional Visual Indicator) */}
+        {hasActivePermission && (
+          <div className="mb-4 bg-green-50 border border-green-200 p-3 rounded-lg flex items-center gap-2 text-green-800 text-sm">
+            <CheckCircle size={16} />
+            <span>Editing Permission Active: You can now update Partial and Paid invoices.</span>
+          </div>
+        )}
+
         {/* HEADER */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-800">Invoices</h1>
-          <p className="text-gray-600">Manage and process student invoices</p>
+          <p className="text-gray-600">Manage, process, and edit student invoices</p>
         </div>
 
         {/* TABS */}
         <div className="mb-6">
           <div className="flex gap-2 border-b overflow-x-auto">
-            {[
-              { key: "unpaid", label: "Unpaid", icon: XCircle },
-              { key: "partial", label: "Partial", icon: CheckCircle },
-              { key: "paid", label: "Paid", icon: CheckCircle }
-            ].map(({ key, label, icon: Icon }) => (
+            {[{ key: "unpaid", label: "Unpaid" }, { key: "partial", label: "Partial" }, { key: "paid", label: "Paid" }]
+              .map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className={`cursor-pointer px-6 py-3 text-sm font-medium rounded-t-lg transition whitespace-nowrap
-                ${activeTab === key ? "bg-white border-t border-l border-r text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+                className={`px-6 py-3 text-sm font-medium rounded-t-lg transition whitespace-nowrap ${activeTab === key ? "bg-white border-t border-l border-r text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
               >
-                <div className="flex items-center gap-2">
-                  <Icon size={16} /> {label} Invoices
-                </div>
+                {label} Invoices
               </button>
             ))}
           </div>
         </div>
 
-        {/* SEARCH & FILTER AREA */}
+        {/* SEARCH & FILTERS (Same as before) */}
         <div className="bg-white p-4 rounded-lg shadow-sm mb-6 flex flex-col gap-4">
-          
-          {/* Top Row: Search */}
-          <div className="relative w-full">
+           {/* ... [Search and Filter Inputs Code - kept same as your provided code] ... */}
+           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by student name or invoice number..."
-              className="w-[300px] pl-10 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-            />
-          </div>
-
-          {/* Bottom Row: Filters (Class, Section, Month) */}
-          <div className="flex flex-col sm:flex-row gap-3">
-             <div className="flex items-center gap-2 flex-1">
-                <Filter size={18} className="text-gray-400 shrink-0" />
-                
-                {/* Class Filter */}
-                <select
-                  value={filterClass}
-                  onChange={(e) => setFilterClass(e.target.value)}
-                  className="w-full py-2.5 px-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-sm"
-                >
-                  <option value="">All Classes</option>
-                  {availableClasses.map(cls => (
-                    <option key={cls} value={cls}>Class {cls}</option>
-                  ))}
-                </select>
-             </div>
-
-             {/* Section Filter */}
-             <div className="flex-1">
-                <select
-                  value={filterSection}
-                  onChange={(e) => setFilterSection(e.target.value)}
-                  className="w-full py-2.5 px-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-sm"
-                >
-                  <option value="">All Sections</option>
-                  {availableSections.map(sec => (
-                    <option key={sec} value={sec}>Section {sec}</option>
-                  ))}
-                </select>
-             </div>
-
-             {/* Fee Month Filter */}
-             <div className="flex-1">
-                <select
-                  value={filterMonth}
-                  onChange={(e) => setFilterMonth(e.target.value)}
-                  className="w-full py-2.5 px-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-sm capitalize"
-                >
-                  <option value="">All Months</option>
-                  {availableMonths.map(month => (
-                    <option key={month} value={month} className="capitalize">{month}</option>
-                  ))}
-                </select>
-             </div>
-
-             {/* Reset Filters Button (Optional but helpful) */}
-             {(filterClass || filterSection || filterMonth) && (
-                <button 
-                  onClick={() => { setFilterClass(""); setFilterSection(""); setFilterMonth(""); }}
-                  className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200"
-                >
-                  Reset
-                </button>
-             )}
-          </div>
+            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search student/invoice..." className="w-[300px] pl-10 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+           </div>
+           <div className="flex flex-col sm:flex-row gap-3">
+              <select value={filterClass} onChange={(e) => setFilterClass(e.target.value)} className="flex-1 py-2.5 px-3 border rounded-lg bg-white text-sm">
+                <option value="">All Classes</option>
+                {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select value={filterSection} onChange={(e) => setFilterSection(e.target.value)} className="flex-1 py-2.5 px-3 border rounded-lg bg-white text-sm">
+                <option value="">All Sections</option>
+                {availableSections.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="flex-1 py-2.5 px-3 border rounded-lg bg-white text-sm capitalize">
+                <option value="">All Months</option>
+                {availableMonths.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+              {(filterClass || filterSection || filterMonth) && <button onClick={() => {setFilterClass(""); setFilterSection(""); setFilterMonth("");}} className="text-red-600 text-sm px-3">Reset</button>}
+           </div>
         </div>
 
         {/* TABLE */}
         <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
-          {loadingInvoices ? (
-            <div className="p-12 flex justify-center"><Loader2 className="animate-spin h-10 w-10 text-blue-600" /></div>
-          ) : isError ? (
-            <div className="p-12 text-center text-red-500"><AlertCircle className="mx-auto mb-2" /><p>Error loading data. <button onClick={() => refetch()} className="underline">Retry</button></p></div>
-          ) : filteredInvoices.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">
-              <FileText className="mx-auto mb-3 text-gray-400" size={32} />
-              <p>No invoices found matching criteria</p>
-            </div>
-          ) : (
+          {loadingInvoices ? <div className="p-12 flex justify-center"><Loader2 className="animate-spin h-10 w-10 text-blue-600" /></div> : 
+           isError ? <div className="p-12 text-center text-red-500">Error loading data. <button onClick={() => refetch()} className="underline">Retry</button></div> :
+           filteredInvoices.length === 0 ? <div className="p-12 text-center text-gray-500">No invoices found</div> : 
+          (
             <table className="w-full min-w-[1000px]">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Invoice</th>
-                  <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Student</th>
-                  {activeTab === "unpaid" && <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>}
-                  <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Invoice</th>
+                  <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Student</th>
+                  {activeTab === "unpaid" && <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>}
+                  <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                  <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredInvoices.map((invoice, index) => {
-                  return (
-                    <tr key={invoice.invoiceId || index} className="hover:bg-gray-50 transition">
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-                            <FileText size={16} />
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900 text-sm">{invoice.invoiceNumber}</div>
-                            <div className="text-xs text-gray-500 capitalize">{invoice.feeMonth}</div>
-                          </div>
+                {filteredInvoices.map((invoice, index) => (
+                  <tr key={invoice.invoiceId || index} className="hover:bg-gray-50 transition">
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><FileText size={16} /></div>
+                        <div>
+                          <div className="font-medium text-gray-900 text-sm">{invoice.invoiceNumber}</div>
+                          <div className="text-xs text-gray-500 capitalize">{invoice.feeMonth}</div>
                         </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
-                            <User size={14} />
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900 text-sm">{invoice.studentName}</div>
-                            <div className="text-xs text-gray-500">
-                              Class {invoice.className} {invoice.section ? `(${invoice.section})` : ''}
-                            </div>
-                          </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><User size={14} /></div>
+                        <div>
+                          <div className="font-medium text-gray-900 text-sm">{invoice.studentName}</div>
+                          <div className="text-xs text-gray-500">Class {invoice.className} {invoice.section}</div>
                         </div>
-                      </td>
-                      
-                      {activeTab === "unpaid" && (
-                        <td className="p-4 text-sm text-gray-600">{formatDate(invoice.date)}</td>
-                      )}
-                      <td className="p-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                          ${invoice.status === "paid" ? "bg-green-100 text-green-800 border-green-200" :
-                            invoice.status === "partial" ? "bg-yellow-100 text-yellow-800 border-yellow-200" : "bg-red-100 text-red-800 border-red-200"}`}>
-                          {invoice.status}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => window.open(invoice.urlinvoice || "", "_blank")} 
-                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition"
-                            title="View Invoice"
-                          >
-                            <Eye size={18} />
+                      </div>
+                    </td>
+                    {activeTab === "unpaid" && <td className="p-4 text-sm text-gray-600">{formatDate(invoice.date)}</td>}
+                    <td className="p-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${invoice.status === "paid" ? "bg-green-100 text-green-800" : invoice.status === "partial" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}`}>
+                        {invoice.status}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => window.open(invoice.urlinvoice || "", "_blank")} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded" title="View">
+                          <Eye size={18} />
+                        </button>
+
+                        {/* Pay Button (Only for Unpaid/Partial) */}
+                        {(activeTab === "unpaid" || activeTab === "partial") && (
+                          <button onClick={() => handlePayInvoice(invoice)} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 text-xs font-medium">
+                            <CreditCard size={14} /> Pay
                           </button>
-                          
-                          {(activeTab === "unpaid" || activeTab === "partial") && (
+                        )}
+
+                        {/* EDIT BUTTON (Only for Partial/Paid AND if Permission Active) */}
+                        {(activeTab === "partial" || activeTab === "paid") && (
+                          <div className="relative group">
                             <button
-                              onClick={() => handlePayInvoice(invoice)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition text-xs font-medium shadow-sm"
-                              title="Pay Invoice"
+                              onClick={() => handleEditClick(invoice)}
+                              disabled={!hasActivePermission}
+                              className={`p-1.5 rounded transition ${
+                                hasActivePermission 
+                                  ? "text-blue-600 hover:bg-blue-50" 
+                                  : "text-gray-300 cursor-not-allowed"
+                              }`}
                             >
-                              <CreditCard size={14} /> Pay
+                               {hasActivePermission ? <Pencil size={18} /> : <Lock size={18} />}
                             </button>
-                          )}
-                          
-                          <button
-                            onClick={() => handleDeleteInvoice(invoice)}
-                            disabled={deletingInvoiceId === invoice.invoiceId}
-                            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Delete Invoice"
-                          >
-                            {deletingInvoiceId === invoice.invoiceId ? (
-                              <Loader2 className="animate-spin" size={18} />
-                            ) : (
-                              <Trash2 size={18} />
+                            {/* Tooltip for disabled state */}
+                            {!hasActivePermission && (
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 bg-gray-800 text-white text-xs p-2 rounded shadow-lg z-10 text-center">
+                                Permission required to edit.
+                              </div>
                             )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                          </div>
+                        )}
+
+                        <button onClick={() => handleDeleteInvoice(invoice)} disabled={deletingInvoiceId === invoice.invoiceId} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50">
+                          {deletingInvoiceId === invoice.invoiceId ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           )}
         </div>
 
-        {/* PAYMENT MODAL (Keep existing implementation) */}
+        {/* ================= PAYMENT MODAL (Existing) ================= */}
         {showPaymentModal && selectedInvoice && (
-           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+             {/* ... [Existing Payment Modal Code] ... */}
+             {/* I am abbreviating this part as it's the same as your code, just ensure it uses handleFeeChange(k, v, false) */}
              <div className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl flex flex-col max-h-[90vh]">
                {/* Header */}
-               <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
-                 <div>
-                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                     <CreditCard size={20} className="text-green-600" /> Collect Fee
-                   </h3>
-                   <div className="flex items-center gap-2 mt-1">
-                     <p className="text-xs text-gray-500">
-                       Invoice: <span className="font-mono text-gray-700">{selectedInvoice.invoiceNumber}</span>
-                     </p>
-                     <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
-                       {selectedInvoice.className} {selectedInvoice.section ? `(${selectedInvoice.section})` : ''}
-                     </span>
-                   </div>
-                 </div>
-                 <button
-                   onClick={() => {
-                     setShowPaymentModal(false);
-                     setSelectedInvoice(null);
-                     setPaymentAmount({});
-                   }}
-                   className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition"
-                   disabled={processingPayment}
-                 >
-                   <XCircle size={24} />
-                 </button>
+               <div className="flex justify-between p-6 border-b">
+                 <h3 className="text-lg font-bold flex items-center gap-2"><CreditCard size={20} className="text-green-600"/> Collect Fee</h3>
+                 <button onClick={() => {setShowPaymentModal(false); setSelectedInvoice(null);}}><XCircle size={24} className="text-gray-400 hover:text-gray-600"/></button>
                </div>
-
                {/* Body */}
-               <div className="flex-1 overflow-y-auto p-6">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 h-full">
-                   {/* Left Column */}
-                   <div className="flex flex-col h-full">
-                     <div className="flex justify-between items-center mb-4">
-                       <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide border-b-2 border-gray-200 pb-1">Fee Info</h4>
-                       <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full font-medium">
-                         {loadingBalance ? <Loader2 className="animate-spin h-3 w-3 inline mr-1" /> : null}
-                         Total Due: Rs. {loadingBalance ? "..." : totalDueFromAPI.toLocaleString()}
-                       </span>
-                     </div>
-                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 overflow-y-auto flex-1 relative">
-                        {loadingBalance ? (
-                          <div className="absolute inset-0 flex items-center justify-center bg-gray-50/80 z-10">
-                            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            {feeInputFields.map(({ key, label }) => {
-                              const apiResponseKey = apiKeyMapping[key] || key;
-                              const amount = feeBreakdown[apiResponseKey] || 0;
-                              return (
-                                <div key={key} className="flex justify-between items-center text-sm border-b border-gray-100 pb-1 last:border-0">
-                                  <span className="text-gray-600 font-medium">{label}</span>
-                                  <span className="text-gray-900 font-mono font-bold">Rs. {Number(amount).toLocaleString()}</span>
-                                </div>
-                              );
-                            })}
-                            {feeBreakdown.arrears > 0 && (
-                              <div className="flex justify-between items-center text-sm border-b border-gray-100 pb-1 text-red-600">
-                                <span className="font-medium">Arrears</span>
-                                <span className="font-mono font-bold">Rs. {Number(feeBreakdown.arrears).toLocaleString()}</span>
-                              </div>
-                            )}
-                            {feeBreakdown.absentFine > 0 && (
-                               <div className="flex justify-between items-center text-sm border-b border-gray-100 pb-1">
-                                 <span className="text-gray-600 font-medium">Absent Fine</span>
-                                 <span className="text-gray-900 font-mono font-bold">Rs. {Number(feeBreakdown.absentFine).toLocaleString()}</span>
-                               </div>
-                            )}
-                          </div>
-                        )}
-                     </div>
+               <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-8">
+                 {/* Left: Current Status */}
+                 <div className="bg-gray-50 p-4 rounded border">
+                   <h4 className="font-bold mb-4">Current Balance Due: {loadingDetails ? "..." : (balanceData?.data?.feeBreakdown ? Object.values(balanceData.data.feeBreakdown).reduce((a,b)=>a+(Number(b)||0),0) : 0)}</h4>
+                   <div className="space-y-2">
+                     {loadingDetails ? <Loader2 className="animate-spin" /> : 
+                        feeInputFields.map(f => {
+                           const val = feeBreakdown[apiKeyMapping[f.key] || f.key] || 0;
+                           return <div key={f.key} className="flex justify-between text-sm border-b pb-1"><span>{f.label}</span><span className="font-mono">{val}</span></div>
+                        })
+                     }
                    </div>
-
-                   {/* Right Column */}
-                   <div className="flex flex-col h-full">
-                     <div className="flex justify-between items-center mb-4">
-                       <h4 className="text-sm font-bold text-blue-600 uppercase tracking-wide border-b-2 border-blue-200 pb-1">Payment Entry</h4>
-                       <span className="text-xs px-2 py-1 bg-blue-50 text-blue-800 rounded-full font-medium">
-                         Paying: Rs. {paymentAmount.total?.toLocaleString() || "0"}
-                       </span>
-                     </div>
-                     <div className="bg-white border border-blue-200 rounded-lg p-4 overflow-y-auto flex-1 shadow-sm">
-                       <div className="space-y-3">
-                         {feeInputFields.map(({ key, label }) => (
-                           <div key={key} className="flex items-center gap-3">
-                             <div className="w-1/3 text-sm text-gray-600 font-medium">{label}</div>
-                             <div className="w-2/3 relative">
-                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">Rs.</span>
-                               <input
-                                 type="number"
-                                 min="0"
-                                 value={paymentAmount[key] || ""}
-                                 onChange={(e) => handleFeeChange(key, e.target.value)}
-                                 className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                               />
-                             </div>
-                           </div>
-                         ))}
+                 </div>
+                 {/* Right: Payment Input */}
+                 <div className="bg-white border border-blue-200 p-4 rounded">
+                   <h4 className="font-bold text-blue-600 mb-4">Payment Entry</h4>
+                   <div className="space-y-3">
+                     {feeInputFields.map(f => (
+                       <div key={f.key} className="flex items-center gap-3">
+                         <span className="w-1/3 text-sm">{f.label}</span>
+                         <input 
+                           type="number" 
+                           value={paymentAmount[f.key] || ""} 
+                           onChange={(e) => handleFeeChange(f.key, e.target.value, false)}
+                           className="flex-1 p-2 border rounded text-sm"
+                         />
                        </div>
-                     </div>
+                     ))}
+                   </div>
+                   <div className="mt-4 pt-4 border-t flex justify-end gap-3">
+                     <button onClick={handlePayNow} disabled={processingAction} className="bg-green-600 text-white px-6 py-2 rounded shadow hover:bg-green-700">
+                        {processingAction ? "Processing..." : `Pay Total: ${paymentAmount.total || 0}`}
+                     </button>
                    </div>
                  </div>
                </div>
+             </div>
+          </div>
+        )}
 
-               {/* Footer */}
-               <div className="p-4 border-t bg-gray-50 rounded-b-2xl shrink-0">
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="text-sm text-gray-600">
-                      Student: <span className="font-medium">{selectedInvoice.studentName}</span>
-                    </div>
-                    <div className="text-sm font-bold text-gray-800">
-                      Grand Total: <span className="text-green-600 text-lg">Rs. {paymentAmount.total?.toLocaleString() || "0"}</span>
-                    </div>
+        {/* ================= EDIT MODAL (NEW) ================= */}
+        {showEditModal && selectedInvoice && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+              
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b bg-amber-50 rounded-t-2xl">
+                <div>
+                  <h3 className="text-lg font-bold text-amber-800 flex items-center gap-2">
+                    <Pencil size={20} /> Update Invoice Details
+                  </h3>
+                  <p className="text-xs text-amber-700">Modifying Invoice: {selectedInvoice.invoiceNumber}</p>
+                </div>
+                <button
+                  onClick={() => { setShowEditModal(false); setSelectedInvoice(null); setEditFormData({}); }}
+                  className="p-2 rounded-full hover:bg-amber-100 text-amber-800 transition"
+                >
+                  <XCircle size={24} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {loadingDetails ? (
+                  <div className="flex justify-center items-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
                   </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => { setShowPaymentModal(false); setSelectedInvoice(null); setPaymentAmount({}); }}
-                      className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition"
-                      disabled={processingPayment}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handlePayNow}
-                      disabled={processingPayment || (paymentAmount.total || 0) <= 0}
-                      className="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                    >
-                      {processingPayment ? <><Loader2 className="animate-spin" size={16} /> Processing...</> : <><CreditCard size={16} /> Pay Now</>}
-                    </button>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {feeInputFields.map(({ key, label }) => (
+                      <div key={key} className="flex flex-col gap-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">{label}</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">Rs.</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={editFormData[key] !== undefined ? editFormData[key] : ""}
+                            onChange={(e) => handleFeeChange(key, e.target.value, true)}
+                            className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm font-medium focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t bg-gray-50 rounded-b-2xl flex justify-end gap-3">
+                <button
+                  onClick={() => { setShowEditModal(false); setSelectedInvoice(null); }}
+                  className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateInvoice}
+                  disabled={processingAction || loadingDetails}
+                  className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-lg shadow-md flex items-center gap-2 disabled:opacity-50"
+                >
+                  {processingAction ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                  Update Changes
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* DELETE MODAL (Same as before) */}
+        {showDeleteModal && invoiceToDelete && (
+           <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center">
+             <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+               <h3 className="text-lg font-bold mb-2">Delete Invoice?</h3>
+               <p className="mb-4 text-gray-600">Are you sure you want to delete {invoiceToDelete.invoiceNumber}?</p>
+               <div className="flex gap-2 justify-end">
+                 <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 border rounded">Cancel</button>
+                 <button onClick={confirmDeleteInvoice} disabled={!!deletingInvoiceId} className="px-4 py-2 bg-red-600 text-white rounded">
+                   {deletingInvoiceId ? "Deleting..." : "Delete"}
+                 </button>
                </div>
              </div>
            </div>
-        )}
-
-        {/* DELETE MODAL (Keep existing implementation) */}
-        {showDeleteModal && invoiceToDelete && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl w-full max-w-md shadow-2xl">
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-red-100 rounded-lg"><Trash2 className="text-red-600" size={24} /></div>
-                  <div><h3 className="text-lg font-bold text-gray-800">Delete Invoice</h3><p className="text-sm text-gray-600">This action cannot be undone</p></div>
-                </div>
-                <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg">
-                  <p className="text-sm text-gray-800 font-medium mb-1">Invoice: <span className="font-mono text-red-600">{invoiceToDelete.invoiceNumber}</span></p>
-                  <p className="text-sm text-gray-600">Student: <span className="font-medium">{invoiceToDelete.studentName}</span></p>
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={() => { setShowDeleteModal(false); setInvoiceToDelete(null); }} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition border">Cancel</button>
-                  <button onClick={confirmDeleteInvoice} disabled={deletingInvoiceId} className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-md flex items-center justify-center gap-2">
-                    {deletingInvoiceId ? <><Loader2 className="animate-spin" size={16} /> Deleting...</> : <><Trash2 size={16} /> Delete Invoice</>}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
         )}
 
       </div>

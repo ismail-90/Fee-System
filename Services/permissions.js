@@ -25,8 +25,8 @@ export const approvePermissionRequestAPI = async (requestId) => {
 }
 
 // For Admin : Reject Permission Requests
-export const rejectPermissionRequestAPI = async (requestId, reason) => {
-  const response = await api.put(`/permissions/admin/reject/${requestId}`, { reason });
+export const rejectPermissionRequestAPI = async (requestId, rejectionReason) => {
+  const response = await api.put(`/permissions/admin/reject/${requestId}`, { rejectionReason });
   return response.data;
 }
 

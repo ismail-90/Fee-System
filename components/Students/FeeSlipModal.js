@@ -2,13 +2,8 @@
 import { useState, useEffect } from "react";
 import {
   CheckCircle,
-  Copy,
-  Download,
-  ExternalLink,
   FileText,
   Loader2,
-  Printer,
-  Share2,
   Mail as MailIcon,
   Trash2,
   ChevronDown,
@@ -38,7 +33,7 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
     artCraftFee: 0,
     karateFee: 0,
     lateFeeFine: 0,
-    others: { },
+    others: {},
     admissionFee: 0,
     annualCharges: 0,
     absentFine: 0,
@@ -80,52 +75,52 @@ export default function FeeSlipModal({ isOpen, onClose, student }) {
   }, []);
 
   // Initialize with student's fee data
-// Initialize with student's fee data
-useEffect(() => {
-  if (student && feeMonths.length > 0) {
-    // Set fee month from student or current month
-    if (student?.feeMonth) {
-      // Check if student's fee month exists in current year months
-      const studentMonthExists = feeMonths.some(month =>
-        month.toLowerCase().includes(student.feeMonth.toLowerCase())
-      );
-
-      if (studentMonthExists) {
-        // Find the matching month
-        const matchingMonth = feeMonths.find(month =>
+  // Initialize with student's fee data
+  useEffect(() => {
+    if (student && feeMonths.length > 0) {
+      // Set fee month from student or current month
+      if (student?.feeMonth) {
+        // Check if student's fee month exists in current year months
+        const studentMonthExists = feeMonths.some(month =>
           month.toLowerCase().includes(student.feeMonth.toLowerCase())
         );
-        setFeeMonth(matchingMonth || feeMonths[0]);
+
+        if (studentMonthExists) {
+          // Find the matching month
+          const matchingMonth = feeMonths.find(month =>
+            month.toLowerCase().includes(student.feeMonth.toLowerCase())
+          );
+          setFeeMonth(matchingMonth || feeMonths[0]);
+        } else {
+          setFeeMonth(feeMonths[0]);
+        }
       } else {
-        setFeeMonth(feeMonths[0]);
+        // Default to current month
+        const currentMonthIndex = new Date().getMonth();
+        setFeeMonth(feeMonths[currentMonthIndex] || feeMonths[0]);
       }
-    } else {
-      // Default to current month
-      const currentMonthIndex = new Date().getMonth();
-      setFeeMonth(feeMonths[currentMonthIndex] || feeMonths[0]);
+
+      // Initialize fee breakdown from student data - YE SECTION UPDATE KAREN
+      setFeeBreakdown(prev => ({
+        ...prev,
+        tutionFee: student.tutionFee || 0,
+        booksCharges: student.booksCharges || 0,
+        registrationFee: student.registrationFee || 0,
+        examFee: student.examFee || 0,
+        labFee: student.labFee || 0,
+        artCraftFee: student.artCraftFee || 0,
+        karateFee: student.karateFee || 0,
+        lateFeeFine: student.lateFeeFine || 0,
+        others: student.others || {},
+        admissionFee: student.admissionFee || 0,
+        annualCharges: student.annualCharges || 0,
+        absentFine: student.absentFee || 0,
+        miscellaneousFee: student.miscellaneousFee || 0,
+        arrears: student.curBalance || 0  // YAHAN ARREARS KO curBalance SE SET KAREN
+      }));
+
     }
-
-    // Initialize fee breakdown from student data - YE SECTION UPDATE KAREN
-    setFeeBreakdown(prev => ({
-      ...prev,
-      tutionFee: student.tutionFee || 0,
-      booksCharges: student.booksCharges || 0,
-      registrationFee: student.registrationFee || 0,
-      examFee: student.examFee || 0,
-      labFee: student.labFee || 0,
-      artCraftFee: student.artCraftFee || 0,
-      karateFee: student.karateFee || 0,
-      lateFeeFine: student.lateFeeFine || 0,
-      others: student.others || {},
-      admissionFee: student.admissionFee || 0,
-      annualCharges: student.annualCharges || 0,
-      absentFine: student.absentFee || 0,
-      miscellaneousFee: student.miscellaneousFee || 0,
-      arrears: student.curBalance || 0  // YAHAN ARREARS KO curBalance SE SET KAREN
-    }));
-
-  }
-}, [student, feeMonths]);
+  }, [student, feeMonths]);
 
   // Helper functions
   const formatDate = (dateString) => {
@@ -309,10 +304,6 @@ useEffect(() => {
       const response = await generateFeeReceiptAPI(feeData);
       setSlipData(response.data);
 
-      // Auto open in new tab
-      if (response.data.invoiceUrl) {
-        window.open(response.data.invoiceUrl, '_blank');
-      }
 
     } catch (error) {
       console.error("Error generating fee slip:", error);
@@ -320,73 +311,6 @@ useEffect(() => {
     } finally {
       setGeneratingSlip(false);
     }
-  };
-
-  const handleDownloadSlip = async () => {
-    if (!slipData) return;
-
-    try {
-      const response = await fetch(slipData.downloadUrl || slipData.invoiceUrl);
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const monthText = feeMonthType === "single" ?
-          feeMonth :
-          `${getMonthName(feeMonth)}-${getMonthName(secondMonth)}-${getCurrentYear()}`;
-        a.download = `Fee-Slip-${student?.studentName || 'student'}-${monthText}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      }
-    } catch (error) {
-      console.error("Download failed:", error);
-      window.open(slipData.downloadUrl || slipData.invoiceUrl, '_blank');
-    }
-  };
-
-  const handlePrintSlip = () => {
-    if (!slipData?.previewUrl && !slipData?.invoiceUrl) return;
-    const printWindow = window.open(slipData.previewUrl || slipData.invoiceUrl, '_blank');
-    printWindow?.print();
-  };
-
-  const handleShareSlip = async () => {
-    if (!slipData) return;
-
-    const shareUrl = slipData.previewUrl || slipData.invoiceUrl;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Fee Slip - ${student?.studentName || 'Student'}`,
-          text: `Fee slip for ${student?.studentName || 'Student'}, ${getMonthDisplayText()}`,
-          url: shareUrl,
-        });
-      } catch (error) {
-        console.log('Sharing cancelled:', error);
-      }
-    } else {
-      copyToClipboard(shareUrl);
-    }
-  };
-
-  const handleEmailSlip = () => {
-    if (!slipData) return;
-
-    const shareUrl = slipData.previewUrl || slipData.invoiceUrl;
-    const subject = `Fee Slip - ${student?.studentName || 'Student'} - ${getMonthDisplayText()}`;
-    const body = `Dear Parent,\n\nPlease find attached the fee slip for ${student?.studentName || 'Student'}.\n\nFee Slip: ${shareUrl}\n\nRegards,\nSchool Administration`;
-    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  };
-
-  const copyToClipboard = (text) => {
-    if (!text) return;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleDone = () => {
@@ -477,8 +401,8 @@ useEffect(() => {
                   setSecondMonth("");
                 }}
                 className={`px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${feeMonthType === "single"
-                    ? 'bg-linear-to-r from-blue-50 to-indigo-50 border-blue-500 text-blue-700 shadow-sm'
-                    : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+                  ? 'bg-linear-to-r from-blue-50 to-indigo-50 border-blue-500 text-blue-700 shadow-sm'
+                  : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
                   }`}
               >
                 <FileText size={18} />
@@ -487,8 +411,8 @@ useEffect(() => {
               <button
                 onClick={handleDoubleMonthSelect}
                 className={`px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${feeMonthType === "double"
-                    ? 'bg-linear-to-r from-purple-50 to-pink-50 border-purple-500 text-purple-700 shadow-sm'
-                    : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+                  ? 'bg-linear-to-r from-purple-50 to-pink-50 border-purple-500 text-purple-700 shadow-sm'
+                  : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
                   }`}
               >
                 <FileText size={18} />
@@ -533,8 +457,8 @@ useEffect(() => {
                           key={month}
                           onClick={() => setFeeMonth(month)}
                           className={`px-3 py-2.5 rounded-lg border transition-all ${feeMonth === month
-                              ? 'bg-linear-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-md'
-                              : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+                            ? 'bg-linear-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-md'
+                            : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
                             }`}
                         >
                           <div className="font-medium">{getMonthName(month)}</div>
@@ -554,8 +478,8 @@ useEffect(() => {
                           key={month}
                           onClick={() => setSecondMonth(month)}
                           className={`px-3 py-2.5 rounded-lg border transition-all ${secondMonth === month
-                              ? 'bg-linear-to-r from-purple-600 to-pink-600 text-white border-purple-600 shadow-md'
-                              : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+                            ? 'bg-linear-to-r from-purple-600 to-pink-600 text-white border-purple-600 shadow-md'
+                            : 'bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
                             }`}
                         >
                           <div className="font-medium">{getMonthName(month)}</div>
@@ -870,162 +794,33 @@ useEffect(() => {
                       </div>
                     ))}
                   </div>
- <div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    Arrears (Current Balance)
-    <span className="ml-2 text-xs text-gray-500">
-      (Student's current balance: Rs. {student.curBalance?.toLocaleString() || '0'})
-    </span>
-  </label>
-  <div className="relative">
-    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
-    <input
-      type="number"
-      value={feeBreakdown.arrears || ''}
-      onChange={(e) => handleBreakdownChange('arrears', e.target.value)}
-      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-      placeholder="Edit arrears amount if needed"
-      min="0"
-    />
-  </div>
-</div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Arrears (Current Balance)
+                      <span className="ml-2 text-xs text-gray-500">
+                        (Student&apos;s current balance: Rs. {student.curBalance?.toLocaleString() || '0'})
+                      </span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rs.</span>
+                      <input
+                        type="number"
+                        value={feeBreakdown.arrears || ''}
+                        onChange={(e) => handleBreakdownChange('arrears', e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Edit arrears amount if needed"
+                        min="0"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Generated Slip Preview */}
-          {slipData && (
-            <div className="mb-8 p-5 bg-linear-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-              <h3 className="font-bold text-green-800 mb-4 flex items-center gap-2">
-                <CheckCircle size={20} />
-                {feeMonthType === "double" ? "Double Month " : ""}Fee Slip Generated Successfully
-              </h3>
-              <div className="space-y-3 mb-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700">Invoice Number:</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold font-mono">{slipData.invoiceNumber || 'N/A'}</span>
-                    <button
-                      onClick={() => copyToClipboard(slipData.invoiceNumber)}
-                      className="p-1 hover:bg-green-100 rounded"
-                      title="Copy"
-                    >
-                      <Copy size={14} className="text-green-600" />
-                    </button>
-                  </div>
-                </div>
 
-                <div className="flex justify-between">
-                  <span className="text-gray-700">Fee Period:</span>
-                  <span className="font-medium">{getMonthDisplayText()}</span>
-                </div>
 
-                <div className="flex justify-between">
-                  <span className="text-gray-700">Generated At:</span>
-                  <span className="font-medium">{formatDate(slipData.generatedAt)}</span>
-                </div>
 
-                {slipData.amounts && (
-                  <div className="mt-4 pt-4 border-t border-green-200">
-                    <div className="flex justify-between font-bold">
-                      <span>Total Amount:</span>
-                      <span className="text-blue-700">Rs. {slipData.amounts.total || calculateTotal()}</span>
-                    </div>
-                    {slipData.amounts.lateFine > 0 && (
-                      <div className="flex justify-between text-sm mt-1">
-                        <span className="text-red-600">Late Fine:</span>
-                        <span className="text-red-600">+ Rs. {slipData.amounts.lateFine}</span>
-                      </div>
-                    )}
-                    {slipData.amounts.totalWithFine && (
-                      <div className="flex justify-between text-lg font-bold mt-2 pt-2 border-t border-green-200">
-                        <span>Total Payable:</span>
-                        <span className="text-green-700">Rs. {slipData.amounts.totalWithFine}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-2 mt-4">
-                <button
-                  onClick={() => window.open(slipData.previewUrl || slipData.invoiceUrl, '_blank')}
-                  className="flex-1 min-w-[120px] px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <ExternalLink size={16} />
-                  Preview
-                </button>
-                <button
-                  onClick={handleDownloadSlip}
-                  className="flex-1 min-w-[120px] px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Download size={16} />
-                  Download
-                </button>
-                <button
-                  onClick={handlePrintSlip}
-                  className="flex-1 min-w-[120px] px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Printer size={16} />
-                  Print
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Copy URL Section */}
-          {slipData?.previewUrl && (
-            <div className="mb-8 p-4 bg-linear-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
-              <label className="block text-sm font-medium text-indigo-700 mb-2">
-                Share Fee Slip Link
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={slipData.previewUrl}
-                  className="flex-1 px-4 py-2 bg-white border border-indigo-300 rounded-lg text-sm font-mono truncate"
-                />
-                <button
-                  onClick={() => copyToClipboard(slipData.previewUrl)}
-                  className={`px-4 py-2 rounded-lg flex items-center gap-2 ${copied
-                    ? 'bg-green-600 text-white'
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    }`}
-                >
-                  {copied ? (
-                    <>
-                      <CheckCircle size={16} />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={16} />
-                      Copy
-                    </>
-                  )}
-                </button>
-              </div>
-              <div className="flex gap-3 mt-3">
-                <button
-                  onClick={handleShareSlip}
-                  className="flex-1 px-4 py-2.5 bg-linear-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
-                >
-                  <Share2 size={16} />
-                  Share
-                </button>
-                <button
-                  onClick={handleEmailSlip}
-                  className="flex-1 px-4 py-2.5 bg-linear-to-r from-red-500 to-orange-500 text-white rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
-                >
-                  <MailIcon size={16} />
-                  Email
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Modal Footer */}

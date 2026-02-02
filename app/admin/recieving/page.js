@@ -1,8 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useAuth } from "../../../context/AuthContext";
+import { useRouter } from "next/navigation"; // Router import zaruuri hai
 import AppLayout from "../../../components/AppLayout";
 import { getInvoicesByCampusAPI } from "../../../Services/invoiceService";
 import { getCampusesAPI } from "../../../Services/campusService";
+import InvoiceViewModal from "../../../components/InvoicesInfo/InvoiceViewModal"; // Link established
+import { Eye, Loader, FileText } from 'lucide-react'; // Added FileText icon
+
 
 // Define class array
 const Classes = [
@@ -11,6 +16,9 @@ const Classes = [
 ];
 
 export default function Invoices() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter(); // Router instance
+
   const [campuses, setCampuses] = useState([]);
   const [selectedCampus, setSelectedCampus] = useState('');
   const [selectedClass, setSelectedClass] = useState('all');
@@ -19,6 +27,21 @@ export default function Invoices() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState('all');
+  
+  // Modal State
+  const [showViewModal, setShowViewModal] = useState(false); 
+  const [viewInvoiceId, setViewInvoiceId] = useState(null);
+
+  // --- LINK LOGIC: Yeh function Modal ko kholega ---
+  const handleViewClick = (invoice) => {
+    if (invoice._id || invoice.invoiceId) {
+        setViewInvoiceId(invoice._id || invoice.invoiceId); // ID ko set karo
+        setShowViewModal(true); // Modal ko show karo
+    } else {
+        alert("Invoice ID not found");
+    }
+  };
+
   const [summary, setSummary] = useState({
     count: 0,
     paid: 0,
@@ -173,8 +196,6 @@ export default function Invoices() {
       if (status === 'unpaid' || status === 'unpa') {
         return sum + (inv.totalAmount || 0);
       } else if (status === 'partial') {
-        // For partial payments, you might need to calculate actual pending amount
-        // Assuming we don't have paidAmount in response, using totalAmount as pending
         return sum + (inv.totalAmount || 0);
       }
       return sum;
@@ -185,6 +206,9 @@ export default function Invoices() {
     const campus = campuses.find(c => c._id === id);
     return campus ? campus.name : 'Unknown Campus';
   };
+
+  if (authLoading) return <div className="min-h-screen flex justify-center items-center"><Loader className="h-8 w-8 animate-spin text-blue-600" /></div>;
+  if (!user) { router.push("/"); return null; }
 
   return (
     <AppLayout>
@@ -231,8 +255,6 @@ export default function Invoices() {
                   ))}
                 </select>
               </div>
-
-               
             </div>
           </div>
 
@@ -282,12 +304,9 @@ export default function Invoices() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Partial Invoices</p>
                   <p className="text-2xl font-bold text-gray-900">{summary.partial}</p>
-                  
                 </div>
               </div>
             </div>
-
-          
           </div>
 
           {/* Filters Section */}
@@ -379,7 +398,7 @@ export default function Invoices() {
               </div>
             ) : filteredInvoices.length === 0 ? (
               <div className="text-center py-12">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org2000/svg">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
                 <h3 className="mt-2 text-sm font-medium text-gray-900">No invoices found</h3>
@@ -398,7 +417,6 @@ export default function Invoices() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee Month</th>
-                      
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -441,7 +459,6 @@ export default function Invoices() {
                             {invoice.feeMonth || 'N/A'}
                           </div>
                         </td>
-                        
                         <td className="px-6 py-4 whitespace-nowrap">
                           {getStatusBadge(invoice.paymentStatus)}
                         </td>
@@ -450,24 +467,21 @@ export default function Invoices() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
-                            {invoice.invoiceUrl ? (
-                              <a
-                                href={invoice.invoiceUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-blue-700 bg-blue-100 hover:bg-blue-200 transition-colors"
-                              >
-                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                                View
-                              </a>
-                            ) : (
-                              <span className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-500 bg-gray-50">
-                                No File
-                              </span>
-                            )}
-                            <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            {/* EYE BUTTON: Linked to handleViewClick */}
+                            <button 
+                                onClick={() => handleViewClick(invoice)} 
+                                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition" 
+                                title="View Invoice"
+                            >
+                              <Eye size={18} />
+                            </button>
+                            
+                            {/* DETAILS BUTTON: Also linked to handleViewClick for easy access */}
+                            <button 
+                                onClick={() => handleViewClick(invoice)}
+                                className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:text-blue-600 transition-colors"
+                            >
+                              <FileText size={14} className="mr-1.5" />
                               Details
                             </button>
                           </div>
@@ -478,6 +492,14 @@ export default function Invoices() {
                 </table>
               </div>
             )}
+
+            {/* --- VIEW MODAL COMPONENT (LINKED HERE) --- */}
+            <InvoiceViewModal 
+                isOpen={showViewModal} 
+                onClose={() => { setShowViewModal(false); setViewInvoiceId(null); }} 
+                invoiceId={viewInvoiceId}
+                user={user}
+            />
 
             {/* Summary Footer */}
             {filteredInvoices.length > 0 && (
@@ -494,7 +516,7 @@ export default function Invoices() {
                     </button>
                     <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
                       Next
-                 </button> 
+                    </button> 
                   </div>
                 </div>
               </div>

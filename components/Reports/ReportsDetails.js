@@ -88,8 +88,8 @@ export default function ReportsDetails() {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
           @page {
-            size: A4;
-            margin: 10mm;
+            size: A4 landscape; /* Landscape to fit all columns */
+            margin: 5mm;
           }
           
           * {
@@ -100,13 +100,11 @@ export default function ReportsDetails() {
           
           body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
+            font-size: 10px; /* Smaller font to fit data */
+            line-height: 1.2;
             color: #000;
             background: #fff;
             padding: 0;
-            width: 210mm;
-            max-width: 100%;
           }
           
           .print-container {
@@ -114,82 +112,26 @@ export default function ReportsDetails() {
             padding: 0;
           }
           
-          .print-header {
-            text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-          }
-          
-          .print-header h1 {
-            font-size: 24px;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-          }
-          
-          .print-header .info {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            font-size: 11px;
-            font-weight: 500;
-          }
-          
-          .summary-cards {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin-bottom: 15px;
-          }
-          
-          .card {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            text-align: center;
-          }
-          
-          .card-title {
-            font-size: 10px;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-            font-weight: 600;
-          }
-          
-          .card-value {
-            font-size: 16px;
-            font-weight: bold;
-          }
-          
-          .section-title {
-            font-size: 12px;
-            font-weight: bold;
-            background: #f0f0f0;
-            padding: 6px 8px;
-            margin-bottom: 8px;
-            border-left: 4px solid #000;
-          }
-          
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
           }
           
           th {
             background: #f8f8f8;
             font-weight: 600;
             text-align: left;
-            padding: 6px 8px;
+            padding: 4px 5px;
             border: 1px solid #ddd;
-            font-size: 11px;
+            font-size: 9px;
+            white-space: nowrap;
           }
           
           td {
-            padding: 5px 8px;
+            padding: 3px 5px;
             border: 1px solid #ddd;
-            font-size: 11px;
+            font-size: 9px;
+            white-space: nowrap;
           }
           
           .text-right {
@@ -200,77 +142,12 @@ export default function ReportsDetails() {
             text-align: center;
           }
           
-          .total-row {
-            background: #f8f8f8;
+          .font-bold {
             font-weight: bold;
           }
-          
-          .breakdown-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
-          }
-          
-          .final-calculation {
-            border-top: 2px solid #000;
-            padding-top: 15px;
-            margin-top: 20px;
-          }
-          
-          .calculation-box {
-            max-width: 300px;
-            margin-left: auto;
-            background: #f8f8f8;
-            padding: 12px;
-            border: 1px solid #ddd;
-          }
-          
-          .calc-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-            font-size: 11px;
-          }
-          
-          .calc-total {
-            font-weight: bold;
-            font-size: 14px;
-            border-top: 1px solid #000;
-            padding-top: 8px;
-            margin-top: 8px;
-          }
-          
-          .signatures {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #000;
-          }
-          
-          .signature-box {
-            width: 200px;
-            text-align: center;
-          }
-          
-          .signature-line {
-            border-top: 1px solid #000;
-            margin-top: 30px;
-            padding-top: 5px;
-            font-size: 10px;
-          }
-          
-          @media print {
-            body {
-              width: 100%;
-              margin: 0;
-              padding: 0;
-            }
-            
-            .print-container {
-              padding: 0;
-            }
+
+          .break-inside-avoid {
+            page-break-inside: avoid;
           }
         </style>
       </head>
@@ -298,17 +175,54 @@ export default function ReportsDetails() {
     return new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR', minimumFractionDigits: 0 }).format(amount || 0);
   };
 
+  // Configuration for ALL fee columns based on user request
+  const feeColumns = [
+    { key: 'tutionFee', label: 'Tuition' },
+    { key: 'booksCharges', label: 'Books' },
+    { key: 'registrationFee', label: 'Reg.' },
+    { key: 'examFee', label: 'Exam' },
+    { key: 'labFee', label: 'Lab' },
+    { key: 'artCraftFee', label: 'Art' },
+    { key: 'karateFee', label: 'Karate' },
+    { key: 'lateFeeFine', label: 'Late Fine' },
+    { key: 'admissionFee', label: 'Admis.' },
+    { key: 'annualCharges', label: 'Annual' },
+    { key: 'absentFine', label: 'Absent' },
+    { key: 'miscellaneousFee', label: 'Misc' },
+    { key: 'arrears', label: 'Arrears' },
+    { key: 'others', label: 'Others' },
+  ];
+
   // Helper to calculate fee categories from the payments array
+  // Matches the API response structure where 'feeType' is like 'Tuition Fee', 'Karate Fee', etc.
   const calculateFeeCategory = (payments, type) => {
     if (!payments) return 0;
-    if (type === 'Tuition') return payments.filter(p => p.feeType === 'Tuition Fee').reduce((acc, curr) => acc + curr.amount, 0);
-    if (type === 'Karate') return payments.filter(p => p.feeType === 'Karate Fee').reduce((acc, curr) => acc + curr.amount, 0);
-    if (type === 'Exam') return payments.filter(p => p.feeType === 'Exam Fee').reduce((acc, curr) => acc + curr.amount, 0);
-    if (type === 'Admission') return payments.filter(p => p.feeType === 'Admission Fee').reduce((acc, curr) => acc + curr.amount, 0);
-    if (type === 'Annual') return payments.filter(p => p.feeType === 'Annual Charges').reduce((acc, curr) => acc + curr.amount, 0);
+    
+    // Map simplified types to exact API strings
+    const typeMap = {
+      'Tuition': 'Tuition Fee',
+      'Karate': 'Karate Fee',
+      'Exam': 'Exam Fee',
+      'Admission': 'Admission Fee',
+      'Annual': 'Annual Charges',
+      'Books': 'Books Charges',
+      'Reg': 'Registration Fee',
+      'Lab': 'Lab Fee',
+      'Art': 'Art/Craft Fee',
+      'Late Fine': 'Late Fee Fine',
+      'Absent': 'Absent Fine',
+      'Misc': 'Miscellaneous Fee',
+      'Arrears': 'Arrears'
+    };
 
-    const excluded = ['Tuition Fee', 'Karate Fee', 'Exam Fee', 'Admission Fee', 'Annual Charges'];
-    return payments.filter(p => !excluded.includes(p.feeType)).reduce((acc, curr) => acc + curr.amount, 0);
+    if (type === 'Others') {
+      // Sum everything that is not in the explicit list above
+      const excludedTypes = Object.values(typeMap);
+      return payments.filter(p => !excludedTypes.includes(p.feeType)).reduce((acc, curr) => acc + curr.amount, 0);
+    }
+
+    const apiString = typeMap[type];
+    return payments.filter(p => p.feeType === apiString).reduce((acc, curr) => acc + curr.amount, 0);
   };
 
   // Helper to format date for display
@@ -325,7 +239,8 @@ export default function ReportsDetails() {
   return (
     <AppLayout>
       <div className="min-h-screen bg-gray-50 p-4 print:p-0">
-        <div className="max-w-7xl mx-auto space-y-4 print:max-w-none print:mx-0">
+        <div className="max-w-[2000px] mx-auto space-y-4 print:max-w-none print:mx-0">
+          
           {/* --- Filter UI --- */}
           <div className="bg-white p-4 rounded-lg shadow print:hidden border border-gray-200">
             <div className="flex justify-between items-center mb-3">
@@ -544,60 +459,63 @@ export default function ReportsDetails() {
                 </div>
               </div>
 
-              {/* Detailed Student List - Print Optimized */}
+              {/* Detailed Student List - UPDATED WITH ALL COLUMNS */}
               <div className="mb-4 print:mb-3 break-inside-avoid">
                 <h3 className="text-xs print:text-sm font-bold bg-gray-800 text-white p-2">Detailed Student Collection</h3>
                 <div className="overflow-x-auto print:overflow-visible">
-                  <table className="w-full min-w-full text-xs print:text-xs border border-gray-200">
+                  <table className="w-full min-w-full text-[10px] print:text-[9px] border border-gray-200 whitespace-nowrap">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-2 py-1 border font-medium">#</th>
-                        <th className="px-2 py-1 border font-medium">Student Info</th>
+                        <th className="px-4 py-1 border font-medium">Student Info</th>
                         <th className="px-2 py-1 border font-medium text-center">Class</th>
-                        <th className="px-2 py-1 border font-medium text-right">Tuition</th>
-                        <th className="px-2 py-1 border font-medium text-right">Karate</th>
-                        <th className="px-2 py-1 border font-medium text-right">Annual</th>
-                        <th className="px-2 py-1 border font-medium text-right">Admission</th>
-                        <th className="px-2 py-1 border font-medium text-right">Exam</th>
-                        <th className="px-2 py-1 border font-medium text-right">Others</th>
+                        
+                        {/* ALL FEE COLUMNS RENDERED HERE */}
+                        {feeColumns.map(col => (
+                          <th key={col.key} className="px-1 py-1 border font-medium text-right">{col.label}</th>
+                        ))}
+                        
                         <th className="px-2 py-1 border font-medium text-right bg-gray-100">Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {reportData.studentWiseCollection.map((student, index) => {
-                        const tuitionAmt = calculateFeeCategory(student.payments, 'Tuition');
-                        const karateAmt = calculateFeeCategory(student.payments, 'Karate');
-                        const annualAmt = calculateFeeCategory(student.payments, 'Annual');
-                        const admissionAmt = calculateFeeCategory(student.payments, 'Admission');
-                        const examAmt = calculateFeeCategory(student.payments, 'Exam');
+                        // Calculate all fees for this student
+                        const feeData = feeColumns.reduce((acc, col) => {
+                            acc[col.key] = calculateFeeCategory(student.payments, col.label);
+                            return acc;
+                        }, {});
                         
-                        const otherAmt = calculateFeeCategory(student.payments, 'Others');
                         const recId = student.payments?.[0]?.recordId?.slice(-4).toUpperCase() || (index + 1).toString().padStart(3, '0');
 
                         return (
                           <tr key={index} className="hover:bg-gray-50 print:hover:bg-white">
-                            <td className="px-2 py-1 border text-gray-600 font-mono">{recId}</td>
+                            <td className="px-2 py-1 border text-gray-600 font-mono text-center">{recId}</td>
                             <td className="px-2 py-1 border">
                               <div>
                                 <p className="font-medium text-gray-800">{student.studentName}</p>
-                                <p className="text-[10px] print:text-[9px] text-gray-500">Father: {student.fatherName}</p>
+                                <p className="text-[9px] print:text-[8px] text-gray-500">Father: {student.fatherName}</p>
                               </div>
                             </td>
                             <td className="px-2 py-1 border text-center">{student.className}</td>
-                            <td className="px-2 py-1 border text-right">{tuitionAmt > 0 ? formatCurrency(tuitionAmt) : '-'}</td>
-                            <td className="px-2 py-1 border text-right">{karateAmt > 0 ? formatCurrency(karateAmt) : '-'}</td>
-                            <td className="px-2 py-1 border text-right">{annualAmt > 0 ? formatCurrency(annualAmt) : '-'}</td>
-                            <td className="px-2 py-1 border text-right">{examAmt > 0 ? formatCurrency(examAmt) : '-'}</td>
-                            <td className="px-2 py-1 border text-right">{admissionAmt > 0 ? formatCurrency(admissionAmt) : '-'}</td>
-                            <td className="px-2 py-1 border text-right">{otherAmt > 0 ? formatCurrency(otherAmt) : '-'}</td>
-                            <td className="px-2 py-1 border text-right font-bold bg-gray-50">{formatCurrency(student.totalPaid)}</td>
+                            
+                            {/* Render Fee Values Dynamically */}
+                            {feeColumns.map(col => (
+                              <td key={col.key} className="px-1 py-1 border text-right">
+                                {feeData[col.key] > 0 ? formatCurrency(feeData[col.key]) : '-'}
+                              </td>
+                            ))}
+
+                            <td className="px-2 py-1 border text-right font-bold bg-gray-50">
+                              {formatCurrency(student.totalPaid)}
+                            </td>
                           </tr>
                         );
                       })}
                     </tbody>
                     <tfoot className="bg-gray-100">
                       <tr>
-                        <td colSpan="7" className="px-2 py-1 border text-right font-bold">Total Collection:</td>
+                        <td colSpan={3 + feeColumns.length} className="px-2 py-1 border text-right font-bold">Total Collection:</td>
                         <td className="px-2 py-1 border text-right font-bold text-green-700">{formatCurrency(reportData.income.totalIncome)}</td>
                       </tr>
                     </tfoot>
@@ -722,8 +640,8 @@ export default function ReportsDetails() {
       <style jsx global>{`
         @media print {
           @page {
-            size: A4 portrait;
-            margin: 10mm;
+            size: A4 landscape;
+            margin: 5mm;
           }
           
           body {
@@ -731,7 +649,7 @@ export default function ReportsDetails() {
             print-color-adjust: exact !important;
             background: white !important;
             color: black !important;
-            font-size: 12px !important;
+            font-size: 10px !important;
           }
           
           .print\\:hidden {

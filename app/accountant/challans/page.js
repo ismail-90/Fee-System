@@ -243,11 +243,10 @@ export default function BulkInvoicesPage() {
                   <tr><td>Admission Fee</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.admissionFee || 0)}</td></tr>
                   <tr><td>Registration Fee</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.registrationFee || 0)}</td></tr>
                   <tr><td>Exam Fee</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.examFee || 0)}</td></tr>
-                  <tr><td>2nd Term Exam Fee</td><td class="align-right-bold red-text">0</td></tr>
-                  <tr><td>Labs Fee</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.labFee || 0)}</td></tr>
+                   <tr><td>Labs Fee</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.labFee || 0)}</td></tr>
                   <tr><td>Art & craft Fee</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.artCraftFee || 0)}</td></tr>
                   <tr><td>Karate Fee</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.karateFee || 0)}</td></tr>
-                  <tr><td>Annual Expense ETC</td><td class="align-right-bold red-text">0</td></tr>
+                  <tr><td>Annual Charges</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.annualCharges || 0)}</td></tr>
                   <tr><td>Arrears</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.arrears || 0)}</td></tr>
                    <tr><td>Absent Fine</td><td class="align-right-bold red-text">${formatCurrency(currentPayment.absentFine || 0)}</td></tr>
                   <tr class="highlight-row">

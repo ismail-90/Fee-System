@@ -170,11 +170,10 @@ const InvoicePrintView = ({ apiData, user }) => {
                   <tr><td>Admission Fee</td><td class="align-right-bold red-text">${formatCurrency(cPayment.admissionFee || 0)}</td></tr>
                   <tr><td>Registration Fee</td><td class="align-right-bold red-text">${formatCurrency(cPayment.registrationFee || 0)}</td></tr>
                   <tr><td>Exam Fee</td><td class="align-right-bold red-text">${formatCurrency(cPayment.examFee || 0)}</td></tr>
-                  <tr><td>2nd Term Exam Fee</td><td class="align-right-bold red-text">0</td></tr>
                   <tr><td>Labs Fee</td><td class="align-right-bold red-text">${formatCurrency(cPayment.labFee || 0)}</td></tr>
                   <tr><td>Art & craft Fee</td><td class="align-right-bold red-text">${formatCurrency(cPayment.artCraftFee || 0)}</td></tr>
                   <tr><td>Karate Fee</td><td class="align-right-bold red-text">${formatCurrency(cPayment.karateFee || 0)}</td></tr>
-                  <tr><td>Annual Expense ETC</td><td class="align-right-bold red-text">0</td></tr>
+                  <tr><td>Annual Charges</td><td class="align-right-bold red-text">${formatCurrency(cPayment.annualCharges || 0)}</td></tr>
                   <tr><td>Arrears</td><td class="align-right-bold red-text">${formatCurrency(cPayment.arrears || 0)}</td></tr>
                   <tr><td>Absent Fine</td><td class="align-right-bold red-text">${formatCurrency(cPayment.absentFine || 0)}</td></tr>
                   <tr><td>Misc/Others</td><td class="align-right-bold red-text">${formatCurrency((cPayment.miscellaneousFee || 0) + (cPayment.others || 0))}</td></tr>
